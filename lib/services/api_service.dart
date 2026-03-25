@@ -1,0 +1,115 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
+
+class ApiService {
+  final http.Client _client = http.Client();
+  String? _token;
+
+  Future<void> _loadToken() async {
+    if (_token == null) {
+      final prefs = await SharedPreferences.getInstance();
+      _token = prefs.getString(AppConfig.tokenKey);
+    }
+  }
+
+  Future<void> saveToken(String token) async {
+    _token = token;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConfig.tokenKey, token);
+  }
+
+  Future<void> clearToken() async {
+    _token = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(AppConfig.tokenKey);
+  }
+
+  Map<String, String> _getHeaders({bool includeAuth = true}) {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    if (includeAuth && _token != null) {
+      headers['Authorization'] = 'Bearer $_token';
+    }
+
+    return headers;
+  }
+
+  Future<Map<String, dynamic>> post(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    bool requiresAuth = true,
+  }) async {
+    await _loadToken();
+    final url = Uri.parse('${AppConfig.baseUrl}/$endpoint');
+
+    try {
+      final response = await _client.post(
+        url,
+        headers: _getHeaders(includeAuth: requiresAuth),
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> get(
+    String endpoint, {
+    Map<String, String>? queryParams,
+    bool requiresAuth = true,
+  }) async {
+    await _loadToken();
+    var url = Uri.parse('${AppConfig.baseUrl}/$endpoint');
+
+    if (queryParams != null) {
+      url = url.replace(queryParameters: queryParams);
+    }
+
+    try {
+      final response = await _client.get(
+        url,
+        headers: _getHeaders(includeAuth: requiresAuth),
+      );
+
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> delete(
+    String endpoint, {
+    bool requiresAuth = true,
+  }) async {
+    await _loadToken();
+    final url = Uri.parse('${AppConfig.baseUrl}/$endpoint');
+
+    try {
+      final response = await _client.delete(
+        url,
+        headers: _getHeaders(includeAuth: requiresAuth),
+      );
+
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Map<String, dynamic> _handleResponse(http.Response response) {
+    final body = jsonDecode(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return body;
+    } else {
+      throw Exception(body['message'] ?? 'Request failed');
+    }
+  }
+}
