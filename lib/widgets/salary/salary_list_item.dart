@@ -52,20 +52,20 @@ class SalaryListItem extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.deepPurple.withOpacity(0.08)
+              ? Colors.deepPurple.withValues(alpha: 0.08)
               : theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? Colors.deepPurple.withOpacity(0.5)
+                ? Colors.deepPurple.withValues(alpha: 0.5)
                 : isStaffDeleted
-                ? Colors.red.withOpacity(0.3)
+                ? Colors.red.withValues(alpha: 0.3)
                 : theme.dividerColor,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -84,7 +84,7 @@ class SalaryListItem extends StatelessWidget {
               salary.campus ?? 'No campus',
               style: TextStyle(
                 fontSize: 12,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
             trailing: _buildTrailing(context),
@@ -105,14 +105,14 @@ class SalaryListItem extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? Colors.deepPurple
-                : Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
             isSelected ? Icons.check : Icons.circle_outlined,
             color: isSelected
                 ? Colors.white
-                : Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
             size: 22,
           ),
         ),
@@ -122,10 +122,10 @@ class SalaryListItem extends StatelessWidget {
     return CircleAvatar(
       radius: 22,
       backgroundColor: isStaffDeleted
-          ? Colors.grey.withOpacity(0.2)
+          ? Colors.grey.withValues(alpha: 0.2)
           : (salary.isPaid
-                ? Colors.green.withOpacity(0.15)
-                : Colors.deepPurple.withOpacity(0.15)),
+                ? Colors.green.withValues(alpha: 0.15)
+                : Colors.deepPurple.withValues(alpha: 0.15)),
       child: isStaffDeleted
           ? const Icon(Icons.person_off, color: Colors.grey, size: 20)
           : (salary.isPaid
@@ -154,7 +154,7 @@ class SalaryListItem extends StatelessWidget {
               fontWeight: FontWeight.bold,
               fontSize: 15,
               color: isStaffDeleted
-                  ? theme.colorScheme.onSurface.withOpacity(0.4)
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                   : theme.colorScheme.onSurface,
               decoration: isStaffDeleted ? TextDecoration.lineThrough : null,
             ),
@@ -178,7 +178,7 @@ class SalaryListItem extends StatelessWidget {
           'Payable',
           style: TextStyle(
             fontSize: 10,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
         Text(
@@ -294,9 +294,9 @@ class _StatusBadge extends StatelessWidget {
       margin: const EdgeInsets.only(left: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         text,
@@ -340,7 +340,7 @@ class _DetailRow extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
             fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -474,7 +474,7 @@ class _IconActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: IconButton(

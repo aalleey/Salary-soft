@@ -26,7 +26,7 @@ class _DeletedStaffScreenState extends State<DeletedStaffScreen> {
     setState(() => _isLoading = true);
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final campus = authProvider.currentUser?.campus;
+      final campus = authProvider.activeCampus;
 
       final staff = await _firebaseService.getDeletedStaff(campus: campus);
       if (mounted) {

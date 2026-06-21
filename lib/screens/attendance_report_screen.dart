@@ -36,7 +36,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   Future<void> _initializeData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
-    final userCampus = user?.campus;
+    final userCampus = authProvider.activeCampus;
     _isSuperAdmin = userCampus == null || userCampus.isEmpty;
 
     if (!_isSuperAdmin && userCampus != null) {
@@ -271,7 +271,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         children: [
           Expanded(
             child: DropdownButtonFormField<int>(
-              value: _selectedMonth,
+              initialValue: _selectedMonth,
               decoration: InputDecoration(
                 labelText: 'Month',
                 prefixIcon: const Icon(Icons.calendar_month),
@@ -299,7 +299,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: DropdownButtonFormField<int>(
-              value: _selectedYear,
+              initialValue: _selectedYear,
               decoration: InputDecoration(
                 labelText: 'Year',
                 prefixIcon: const Icon(Icons.date_range),

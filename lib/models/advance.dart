@@ -7,6 +7,8 @@ class Advance {
   final String? description;
   final int advanceMonth; // Month to deduct from (1-12)
   final int advanceYear; // Year to deduct from
+  final String? createdBy;
+  final String? notes;
 
   Advance({
     required this.id,
@@ -17,6 +19,8 @@ class Advance {
     this.description,
     required this.advanceMonth,
     required this.advanceYear,
+    this.createdBy,
+    this.notes,
   });
 
   factory Advance.fromFirestore(Map<String, dynamic> data, String documentId) {
@@ -48,6 +52,8 @@ class Advance {
       description: data['description'],
       advanceMonth: month,
       advanceYear: year,
+      createdBy: data['created_by'],
+      notes: data['notes'],
     );
   }
 
@@ -60,6 +66,8 @@ class Advance {
       'description': description,
       'advance_month': advanceMonth,
       'advance_year': advanceYear,
+      'created_by': createdBy,
+      'notes': notes,
     };
   }
 }

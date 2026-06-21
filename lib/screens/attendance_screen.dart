@@ -91,7 +91,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final staff = await _firebaseService.getAllStaff(
-        campus: authProvider.currentUser?.campus,
+        campus: authProvider.activeCampus,
       );
       if (mounted) {
         setState(() {
@@ -226,7 +226,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         height: 150,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -238,7 +238,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         height: 100,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                         ),
                       ),
                     ),
@@ -276,7 +276,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -290,7 +290,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.indigo.withOpacity(0.1),
+                  color: Colors.indigo.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.date_range, color: Colors.indigo),
@@ -350,7 +350,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Widget _buildCampusFilterChips() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
-    final userCampus = user?.campus;
+    final userCampus = authProvider.activeCampus;
     final isSuperAdmin = userCampus == null || userCampus.isEmpty;
 
     // Only show filter for super admins
@@ -366,7 +366,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -380,7 +380,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.teal.withOpacity(0.1),
+                  color: Colors.teal.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -442,7 +442,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     required void Function(int?) onChanged,
   }) {
     return DropdownButtonFormField<int>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: label,
         contentPadding: const EdgeInsets.symmetric(
@@ -485,7 +485,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -501,7 +501,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1),
+                    color: Colors.purple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.edit_note, color: Colors.purple),
@@ -517,7 +517,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
             // Staff Dropdown
             DropdownButtonFormField<Staff>(
-              value: _selectedStaff,
+              initialValue: _selectedStaff,
               decoration: _buildInputDecoration(
                 label: 'Select Staff *',
                 icon: Icons.person_outline,
@@ -669,7 +669,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       hintText: hint,
       helperText: helper,
       helperStyle: TextStyle(
-        color: iconColor.withOpacity(0.8),
+        color: iconColor.withValues(alpha: 0.8),
         fontWeight: FontWeight.w500,
       ),
       prefixIcon: Icon(icon, color: iconColor),
@@ -753,7 +753,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 16, color: color),

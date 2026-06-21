@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'dart:ui';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/auth_provider.dart';
@@ -11,9 +10,11 @@ import 'login_screen.dart';
 import 'staff_list_screen.dart';
 import 'attendance_screen.dart';
 import 'advance_screen.dart';
-import 'salary_report_screen.dart';
+import 'salary_payment_dashboard_screen.dart';
 import 'manage_campuses_screen.dart';
 import 'manage_users_screen.dart';
+import '../shared/widgets/stat_card_widget.dart';
+import '../shared/widgets/glass_card_widget.dart';
 import 'attendance_report_screen.dart';
 import 'add_edit_user_screen.dart';
 
@@ -76,12 +77,12 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final user = authProvider.currentUser;
+      final activeCampus = authProvider.activeCampus;
       final data = await _firebaseService.getDashboardData(
-        campus: user?.campus,
+        campus: activeCampus,
       );
 
-      final history = await _fetchSalaryHistory(user?.campus);
+      final history = await _fetchSalaryHistory(activeCampus);
 
       if (mounted) {
         setState(() {
@@ -181,7 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               child: CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
-                  _buildAppBar(user, isDark),
+                  _buildAppBar(user, isDark, authProvider),
                   SliverToBoxAdapter(
                     child: FadeTransition(
                       opacity: _fadeAnimation,
@@ -205,7 +206,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ],
                               _buildSectionTitle('Quick Actions'),
                               const SizedBox(height: 16),
-                              _buildQuickActionsGrid(user?.campus),
+                              _buildQuickActionsGrid(authProvider.activeCampus),
                               const SizedBox(height: 40),
                             ],
                           ),
@@ -231,7 +232,12 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  Widget _buildAppBar(dynamic user, bool isDark) {
+  Widget _buildAppBar(dynamic user, bool isDark, AuthProvider authProvider) {
+    final activeCampus = authProvider.activeCampus;
+    final userRole = authProvider.userRole;
+    final assignedCampuses = user?.assignedCampuses ?? <String>[];
+    
+    final bool canSwitchCampus = userRole?.isAdmin == true && assignedCampuses.length > 1;
     return SliverAppBar(
       expandedHeight: 280.0,
       floating: false,
@@ -266,7 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               top: -50,
               child: CircleAvatar(
                 radius: 130,
-                backgroundColor: Colors.white.withOpacity(0.05),
+                backgroundColor: Colors.white.withValues(alpha: 0.05),
               ),
             ),
             Positioned(
@@ -274,7 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               top: 80,
               child: CircleAvatar(
                 radius: 80,
-                backgroundColor: Colors.white.withOpacity(0.05),
+                backgroundColor: Colors.white.withValues(alpha: 0.05),
               ),
             ),
             // Content
@@ -294,10 +300,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                             ),
                           ),
                           child: Row(
@@ -329,7 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: Colors.black.withValues(alpha: 0.2),
                                 blurRadius: 10,
                                 offset: const Offset(0, 5),
                               ),
@@ -371,27 +377,85 @@ class _DashboardScreenState extends State<DashboardScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        (user?.campus == null || user!.campus!.isEmpty)
-                            ? 'Super Admin Dashboard'
-                            : '${user.campus} Campus',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
+                    if (canSwitchCampus)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: PopupMenuButton<String>(
+                          initialValue: activeCampus,
+                          onSelected: (campus) {
+                            authProvider.setActiveCampus(campus);
+                            _loadDashboardData();
+                          },
+                          offset: const Offset(0, 40),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.business, color: Colors.white, size: 16),
+                                const SizedBox(width: 8),
+                                Text(
+                                  activeCampus ?? 'Select Campus',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Colors.white,
+                                ),
+                              ],
+                            ),
+                          ),
+                          itemBuilder: (BuildContext context) {
+                            return assignedCampuses.map<PopupMenuItem<String>>((String c) {
+                              return PopupMenuItem<String>(
+                                value: c,
+                                child: Text(c),
+                              );
+                            }).toList();
+                          },
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          userRole?.isSuperUser == true
+                              ? 'Super User Dashboard'
+                              : '${activeCampus ?? "Admin"} Campus',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -404,7 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.more_vert, color: Colors.white, size: 20),
@@ -467,29 +531,29 @@ class _DashboardScreenState extends State<DashboardScreen>
         mainAxisSpacing: 16,
         childAspectRatio: 0.9,
         children: [
-          _buildPremiumStatCard(
-            'Total Staff',
-            stats['total_staff']?.toString() ?? '0',
-            Icons.people_alt_rounded,
-            [const Color(0xFF4facfe), const Color(0xFF00f2fe)], // Blue Clean
+          StatCard(
+            label: 'Total Staff',
+            value: stats['total_staff']?.toString() ?? '0',
+            icon: Icons.people_alt_rounded,
+            gradient: const [Color(0xFF4facfe), Color(0xFF00f2fe)],
           ),
-          _buildPremiumStatCard(
-            'Paid Salary',
-            'Rs ${NumberFormat.compact().format(stats['total_paid'] ?? 0)}',
-            Icons.payments_rounded,
-            [const Color(0xFF43e97b), const Color(0xFF38f9d7)], // Green Fresh
+          StatCard(
+            label: 'Paid Salary',
+            value: 'Rs ${NumberFormat.compact().format(stats['total_paid'] ?? 0)}',
+            icon: Icons.payments_rounded,
+            gradient: const [Color(0xFF43e97b), Color(0xFF38f9d7)],
           ),
-          _buildPremiumStatCard(
-            'Absents',
-            '${stats['total_absents'] ?? 0}',
-            Icons.cancel_presentation_rounded,
-            [const Color(0xFFff758c), const Color(0xFFff7eb3)], // Red Soft
+          StatCard(
+            label: 'Absents',
+            value: '${stats['total_absents'] ?? 0}',
+            icon: Icons.cancel_presentation_rounded,
+            gradient: const [Color(0xFFff758c), Color(0xFFff7eb3)],
           ),
-          _buildPremiumStatCard(
-            'Advances',
-            stats['total_advances_count']?.toString() ?? '0',
-            Icons.wallet_rounded,
-            [const Color(0xFFf6d365), const Color(0xFFfda085)], // Orange Warm
+          StatCard(
+            label: 'Advances',
+            value: stats['total_advances_count']?.toString() ?? '0',
+            icon: Icons.wallet_rounded,
+            gradient: const [Color(0xFFf6d365), Color(0xFFfda085)],
           ),
         ],
       ),
@@ -499,23 +563,22 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildSalaryTrendChart() {
     final history = _dashboardData!['history'] as List<double>;
     if (history.every((val) => val == 0)) {
-      return Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+      return GlassCard(
+        padding: const EdgeInsets.all(24),
+        child: SizedBox(
+          height: 152,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.auto_graph_rounded, size: 48, color: Colors.grey.withValues(alpha: 0.5)),
+                const SizedBox(height: 12),
+                const Text(
+                  'No salary history available yet',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: const Center(
-          child: Text(
-            'No salary history available yet',
-            style: TextStyle(color: Colors.grey),
           ),
         ),
       );
@@ -531,7 +594,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -596,7 +659,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               belowBarData: BarAreaData(
                 show: true,
-                color: Colors.deepPurple.withOpacity(0.1),
+                color: Colors.deepPurple.withValues(alpha: 0.1),
               ),
             ),
           ],
@@ -622,7 +685,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: colors.last.withOpacity(0.4),
+            color: colors.last.withValues(alpha: 0.4),
             blurRadius: 15,
             offset: const Offset(0, 8),
             spreadRadius: 2,
@@ -634,7 +697,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           Positioned(
             right: -15,
             bottom: -15,
-            child: Icon(icon, size: 90, color: Colors.white.withOpacity(0.15)),
+            child: Icon(icon, size: 90, color: Colors.white.withValues(alpha: 0.15)),
           ),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -645,9 +708,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
+                    color: Colors.white.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: Icon(icon, color: Colors.white, size: 22),
                 ),
@@ -705,7 +768,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       title,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -736,7 +799,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: colors.last.withOpacity(0.4),
+            color: colors.last.withValues(alpha: 0.4),
             blurRadius: 15,
             offset: const Offset(0, 8),
             spreadRadius: 2,
@@ -748,7 +811,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           Positioned(
             right: -15,
             bottom: -15,
-            child: Icon(icon, size: 90, color: Colors.white.withOpacity(0.15)),
+            child: Icon(icon, size: 90, color: Colors.white.withValues(alpha: 0.15)),
           ),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -759,9 +822,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
+                    color: Colors.white.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: Icon(icon, color: Colors.white, size: 22),
                 ),
@@ -829,7 +892,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       title,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -917,7 +980,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: color),
@@ -984,13 +1047,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ),
       _buildGlassyActionCard(
-        'Salary',
+        'Paid Salary',
         'Calculate & Pay',
-        Icons.analytics_rounded,
+        Icons.payments_rounded,
         Colors.pink,
         () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const SalaryReportScreen()),
+          MaterialPageRoute(builder: (_) => const SalaryPaymentDashboardScreen()),
         ),
       ),
       _buildGlassyActionCard(
@@ -1036,13 +1099,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
             border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.5),
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
             ),
           ),
           child: Column(
@@ -1051,7 +1114,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(icon, color: color, size: 28),

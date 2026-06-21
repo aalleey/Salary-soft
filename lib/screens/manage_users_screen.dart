@@ -200,8 +200,18 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   Widget _buildUserCard(Map<String, dynamic> user, bool isDark) {
     final username = user['username'] ?? 'Unknown';
     final email = user['email'] ?? '';
-    final campus = user['campus'] ?? '';
-    final isSuperAdmin = campus.isEmpty;
+    final role = user['role'] ?? 'admin';
+    final isSuperUser = role == 'superUser' || role == 'app_owner';
+    final assignedCampuses = user['assigned_campuses'] as List<dynamic>? ?? [];
+    
+    // Fallback for legacy
+    if (assignedCampuses.isEmpty && user['campus'] != null && user['campus'].toString().isNotEmpty) {
+      assignedCampuses.add(user['campus']);
+    }
+    
+    final String campusesText = assignedCampuses.isNotEmpty 
+        ? assignedCampuses.join(', ') 
+        : 'All Campuses';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -210,9 +220,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
-          backgroundColor: isSuperAdmin ? Colors.deepPurple : Colors.teal,
+          backgroundColor: isSuperUser ? Colors.deepPurple : Colors.teal,
           child: Icon(
-            isSuperAdmin ? Icons.admin_panel_settings : Icons.person,
+            isSuperUser ? Icons.admin_panel_settings : Icons.person,
             color: Colors.white,
           ),
         ),
@@ -227,17 +237,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isSuperAdmin
+                color: isSuperUser
                     ? Colors.deepPurple.shade100
                     : Colors.teal.shade100,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                isSuperAdmin ? 'Super Admin' : 'Campus Admin',
+                isSuperUser ? 'Super User' : 'Admin',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: isSuperAdmin
+                  color: isSuperUser
                       ? Colors.deepPurple.shade700
                       : Colors.teal.shade700,
                 ),
@@ -265,18 +275,22 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                 ),
               ],
             ),
-            if (!isSuperAdmin) ...[
+            if (!isSuperUser) ...[
               const SizedBox(height: 4),
               Row(
                 children: [
                   Icon(Icons.business, size: 14, color: Colors.grey.shade600),
                   const SizedBox(width: 4),
-                  Text(
-                    campus,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.teal.shade700,
-                      fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Text(
+                      campusesText,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.teal.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

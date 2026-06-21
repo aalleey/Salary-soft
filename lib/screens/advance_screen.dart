@@ -66,7 +66,7 @@ class _AdvanceScreenState extends State<AdvanceScreen>
                         top: -30,
                         child: CircleAvatar(
                           radius: 60,
-                          backgroundColor: Colors.white.withOpacity(0.1),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                       Positioned(
@@ -74,7 +74,7 @@ class _AdvanceScreenState extends State<AdvanceScreen>
                         bottom: 40,
                         child: CircleAvatar(
                           radius: 40,
-                          backgroundColor: Colors.white.withOpacity(0.1),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                     ],
@@ -84,7 +84,7 @@ class _AdvanceScreenState extends State<AdvanceScreen>
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(48),
                 child: Container(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   child: TabBar(
                     controller: _tabController,
                     indicatorColor: Colors.white,
@@ -210,7 +210,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.currentUser;
       final staff = await widget.firebaseService.getAllStaff(
-        campus: user?.campus,
+        campus: authProvider.activeCampus,
       );
       setState(() {
         _staffList = staff;
@@ -622,7 +622,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                           fontWeight: FontWeight.bold,
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -663,7 +663,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                           leading: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.15),
+                              color: Colors.orange.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Icon(
@@ -759,7 +759,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                                 child: Container(
                                   padding: const EdgeInsets.all(5),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.1),
+                                    color: Colors.red.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -845,7 +845,7 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.currentUser;
       final staff = await widget.firebaseService.getAllStaff(
-        campus: user?.campus,
+        campus: Provider.of<AuthProvider>(context, listen: false).activeCampus,
       );
       setState(() {
         _staffList = staff;
@@ -872,17 +872,22 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
     setState(() => _isSubmitting = true);
 
     try {
+      final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
+      final desc = _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim();
+
       final advance = Advance(
         id: '',
         staffId: _selectedStaff!.id,
         staffName: _selectedStaff!.name,
         advanceAmount: double.parse(_amountController.text.trim()),
         advanceDate: DateFormat('yyyy-MM-dd').format(_selectedDate),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
+        description: desc,
         advanceMonth: _selectedMonth,
         advanceYear: _selectedYear,
+        createdBy: user?.username ?? 'Admin',
+        notes: desc,
       );
 
       await widget.firebaseService.addAdvance(advance);
@@ -945,7 +950,7 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.15),
+                        color: Colors.orange.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -1180,7 +1185,7 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.orange.withOpacity(0.3),
+                            color: Colors.orange.withValues(alpha: 0.3),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),

@@ -64,13 +64,13 @@ class _StaffListScreenState extends State<StaffListScreen> {
 
     setState(() {
       // Check if user has a specific campus (not null AND not empty)
-      final userCampus = user?.campus;
-      final userHasCampus = userCampus != null && userCampus.isNotEmpty;
+      final activeCampus = authProvider.activeCampus;
+      final userHasCampus = activeCampus != null && activeCampus.isNotEmpty;
 
       if (userHasCampus) {
-        // Campus admin: only show their campus
+        // Campus admin: only show their active campus
         _filteredStaff = _allStaff
-            .where((s) => s.campus == user!.campus)
+            .where((s) => s.campus == activeCampus)
             .toList();
       } else if (_selectedCampus == 'All') {
         // Super admin with 'All' selected
@@ -190,9 +190,8 @@ class _StaffListScreenState extends State<StaffListScreen> {
               ],
             ),
 
-            // Campus Filter Chips (show for super admins - null or empty campus)
-            if ((user?.campus == null || (user?.campus?.isEmpty ?? true)) &&
-                !_isLoadingCampuses)
+            // Campus Filter Chips (show for super admins - activeCampus is null)
+            if (authProvider.activeCampus == null && !_isLoadingCampuses)
               SliverToBoxAdapter(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -292,7 +291,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -300,7 +299,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
         border: Border.all(
           color: staff.isActive
               ? Colors.transparent
-              : Colors.red.withOpacity(0.2),
+              : Colors.red.withValues(alpha: 0.2),
         ),
       ),
       child: ClipRRect(
@@ -316,7 +315,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                     radius: 28,
                     backgroundColor: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     child: Text(
                       staff.name.isNotEmpty ? staff.name[0].toUpperCase() : '?',
                       style: TextStyle(
@@ -350,7 +349,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
+                                  color: Colors.red.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Text(
@@ -372,7 +371,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                               size: 14,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.5),
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -380,7 +379,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                               style: TextStyle(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
                           ],
@@ -392,10 +391,10 @@ class _StaffListScreenState extends State<StaffListScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.deepPurple.withOpacity(0.05),
+                            color: Colors.deepPurple.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Colors.deepPurple.withOpacity(0.1),
+                              color: Colors.deepPurple.withValues(alpha: 0.1),
                             ),
                           ),
                           child: Row(

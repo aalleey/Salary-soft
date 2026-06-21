@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/staff.dart';
@@ -6,6 +8,8 @@ import '../models/attendance.dart';
 import '../models/salary.dart';
 import '../models/advance.dart';
 import '../models/campus.dart';
+import '../models/user.dart' as app_model;
+import '../auth/models/app_user.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -15,6 +19,61 @@ class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  app_model.User? _currentAppUser;
+
+  void setAppUser(app_model.User? user) {
+    _currentAppUser = user;
+  }
+
+  /// Applies Role-Based Access Control filtering to any campus-based query.
+  Query _applyRbacFilter(Query query, String? requestedCampus) {
+    if (_currentAppUser == null) return query; // Fallback or unauthenticated
+    
+    final role = roleFromString(_currentAppUser!.role);
+    if (role.isSuperUser) {
+      if (requestedCampus != null && requestedCampus.isNotEmpty) {
+        return query.where('campus', isEqualTo: requestedCampus);
+      }
+      return query;
+    }
+    
+    // Admin role
+    final campuses = _currentAppUser!.assignedCampuses;
+    if (campuses.isEmpty) {
+      // Force empty result by querying for an impossible campus
+      return query.where('campus', isEqualTo: '___NONE___'); 
+    }
+    
+    if (requestedCampus != null && requestedCampus.isNotEmpty) {
+      if (campuses.contains(requestedCampus)) {
+        return query.where('campus', isEqualTo: requestedCampus);
+      } else {
+        return query.where('campus', isEqualTo: '___UNAUTHORIZED___');
+      }
+    }
+    
+    return query.where('campus', whereIn: campuses);
+  }
+
+  void _verifyCampusAccess(String? campus) {
+    if (_currentAppUser == null) return; // Allow bypass for login/initialization
+    final role = roleFromString(_currentAppUser!.role);
+    if (role.isSuperUser) return;
+    
+    if (campus == null || campus.isEmpty) {
+      throw Exception('Unauthorized: Campus is required for this operation.');
+    }
+    if (!_currentAppUser!.assignedCampuses.contains(campus)) {
+      throw Exception('Unauthorized: You do not have permission to manage data for $campus.');
+    }
+  }
+
+  String _hashPassword(String password) {
+    var bytes = utf8.encode(password);
+    var digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
   // Staff methods
   Future<(List<Staff>, DocumentSnapshot?)> getStaff({
     String? campus,
@@ -23,10 +82,7 @@ class FirebaseService {
   }) async {
     try {
       Query query = _firestore.collection('staff').orderBy('name');
-
-      if (campus != null && campus.isNotEmpty) {
-        query = query.where('campus', isEqualTo: campus);
-      }
+      query = _applyRbacFilter(query, campus);
 
       if (lastDoc != null) {
         query = query.startAfterDocument(lastDoc);
@@ -54,10 +110,7 @@ class FirebaseService {
     try {
       // Avoid composite index issues by not using orderBy with filters
       Query query = _firestore.collection('staff');
-
-      if (campus != null && campus.isNotEmpty) {
-        query = query.where('campus', isEqualTo: campus);
-      }
+      query = _applyRbacFilter(query, campus);
 
       if (onlyActive) {
         query = query.where('isActive', isEqualTo: true);
@@ -95,21 +148,34 @@ class FirebaseService {
 
   Future<String> addStaff(Staff staff) async {
     try {
+      _verifyCampusAccess(staff.campus);
+      final data = staff.toFirestore();
+      if (staff.password != null && staff.password!.isNotEmpty) {
+        data['password'] = _hashPassword(staff.password!);
+      }
       final docRef = await _firestore
           .collection('staff')
-          .add(staff.toFirestore());
+          .add(data);
       return docRef.id;
     } catch (e) {
-      print('Error adding staff: $e');
+      debugPrint('Error adding staff: $e');
       rethrow;
     }
   }
 
   Future<void> updateStaff(String id, Staff staff) async {
     try {
-      await _firestore.collection('staff').doc(id).update(staff.toFirestore());
+      _verifyCampusAccess(staff.campus);
+      final data = staff.toFirestore();
+      if (staff.password != null && staff.password!.isNotEmpty) {
+        // Only hash if it's not already a 64-char SHA256 string
+        if (staff.password!.length != 64) {
+          data['password'] = _hashPassword(staff.password!);
+        }
+      }
+      await _firestore.collection('staff').doc(id).update(data);
     } catch (e) {
-      print('Error updating staff: $e');
+      debugPrint('Error updating staff: $e');
       rethrow;
     }
   }
@@ -143,16 +209,24 @@ class FirebaseService {
           .where('isActive', isEqualTo: true)
           .get();
 
+      final hashedPassword = _hashPassword(password);
+
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        // Check password match - ideally should be hashed, but storing simple for now as requested
-        if (data['password'] == password) {
+        final storedPassword = data['password'] as String?;
+        if (storedPassword == null) continue;
+
+        if (storedPassword == hashedPassword) {
+          return Staff.fromFirestore(data, doc.id);
+        } else if (storedPassword == password) {
+          // Transparent migration for legacy plaintext passwords
+          await doc.reference.update({'password': hashedPassword});
           return Staff.fromFirestore(data, doc.id);
         }
       }
       return null;
     } catch (e) {
-      print('Error verifying staff credentials: $e');
+      debugPrint('Error verifying staff credentials: $e');
       return null;
     }
   }
@@ -163,10 +237,7 @@ class FirebaseService {
       Query query = _firestore
           .collection('staff')
           .where('isActive', isEqualTo: false);
-
-      if (campus != null && campus.isNotEmpty) {
-        query = query.where('campus', isEqualTo: campus);
-      }
+      query = _applyRbacFilter(query, campus);
 
       final snapshot = await query.get();
 
@@ -332,9 +403,7 @@ class FirebaseService {
 
     if (month != null) query = query.where('month', isEqualTo: month);
     if (year != null) query = query.where('year', isEqualTo: year);
-    if (campus != null && campus.isNotEmpty) {
-      query = query.where('campus', isEqualTo: campus);
-    }
+    query = _applyRbacFilter(query, campus);
 
     return query.snapshots().map((snapshot) {
       final salaries = snapshot.docs.map((doc) {
@@ -356,9 +425,7 @@ class FirebaseService {
 
       if (month != null) query = query.where('month', isEqualTo: month);
       if (year != null) query = query.where('year', isEqualTo: year);
-      if (campus != null && campus.isNotEmpty) {
-        query = query.where('campus', isEqualTo: campus);
-      }
+      query = _applyRbacFilter(query, campus);
       if (staffId != null) {
         query = query.where('staff_id', isEqualTo: staffId);
       }
@@ -376,6 +443,7 @@ class FirebaseService {
 
   Future<String> addSalary(Salary salary) async {
     try {
+      _verifyCampusAccess(salary.campus);
       final docRef = await _firestore
           .collection('salaries')
           .add(salary.toFirestore());
@@ -388,6 +456,7 @@ class FirebaseService {
 
   Future<void> updateSalary(String id, Salary salary) async {
     try {
+      _verifyCampusAccess(salary.campus);
       await _firestore
           .collection('salaries')
           .doc(id)
@@ -473,6 +542,22 @@ class FirebaseService {
     }
   }
 
+  Future<void> paySalary(String salaryId, double amount, String date, String note, String status, double totalSalary) async {
+    try {
+      await _firestore.collection('salaries').doc(salaryId).update({
+        'paid_amount': amount,
+        'paid_date': date,
+        'notes': note,
+        'status': status,
+        'remaining_amount': totalSalary - amount,
+        'is_paid': status == 'Paid',
+      });
+    } catch (e) {
+      print('Error paying salary: $e');
+      rethrow;
+    }
+  }
+
   Future<void> recalculateAndSaveSalary(
     String staffId,
     int month,
@@ -534,12 +619,18 @@ class FirebaseService {
       // Preserve existing paid status if available
       bool isPaid = false;
       String? paidDate;
+      double paidAmount = 0.0;
+      String status = 'Pending';
+      String? notes;
       String existingId = '';
 
       if (existingSalaries.isNotEmpty) {
         final existing = existingSalaries.first;
         isPaid = existing.isPaid;
         paidDate = existing.paidDate;
+        paidAmount = existing.paidAmount;
+        status = existing.status;
+        notes = existing.notes;
         existingId = existing.id;
       }
 
@@ -559,6 +650,10 @@ class FirebaseService {
         phone: staff.phone,
         isPaid: isPaid,
         paidDate: paidDate,
+        paidAmount: paidAmount,
+        remainingAmount: finalSalary - paidAmount,
+        status: status,
+        notes: notes,
       );
 
       if (existingSalaries.isNotEmpty) {
@@ -718,9 +813,7 @@ class FirebaseService {
 
       // 1. Staff Count
       Query staffQuery = _firestore.collection('staff');
-      if (campus != null && campus.isNotEmpty) {
-        staffQuery = staffQuery.where('campus', isEqualTo: campus);
-      }
+      staffQuery = _applyRbacFilter(staffQuery, campus);
       final staffSnapshot = await staffQuery.get();
       final totalStaff = staffSnapshot.size;
 
@@ -729,10 +822,7 @@ class FirebaseService {
           .collection('salaries')
           .where('month', isEqualTo: currentMonth)
           .where('year', isEqualTo: currentYear);
-
-      if (campus != null && campus.isNotEmpty) {
-        salaryQuery = salaryQuery.where('campus', isEqualTo: campus);
-      }
+      salaryQuery = _applyRbacFilter(salaryQuery, campus);
       final salarySnapshot = await salaryQuery.get();
 
       final totalSalaryAmount = salarySnapshot.docs.fold<double>(
@@ -749,21 +839,15 @@ class FirebaseService {
           .where('month', isEqualTo: currentMonth)
           .where('year', isEqualTo: currentYear);
 
-      List<String> staffIds = [];
-      if (campus != null && campus.isNotEmpty) {
-        staffIds = staffSnapshot.docs.map((doc) => doc.id).toList();
-      }
+      List<String> allowedStaffIds = staffSnapshot.docs.map((doc) => doc.id).toList();
 
       final attendanceSnapshot = await attendanceQuery.get();
       int totalAbsents = 0;
 
       for (var doc in attendanceSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        if (campus != null && campus.isNotEmpty) {
-          if (staffIds.contains(data['staff_id'])) {
-            totalAbsents += (data['absents'] as num? ?? 0).toInt();
-          }
-        } else {
+        // Filter attendance by staff that belong to allowed campuses
+        if (allowedStaffIds.contains(data['staff_id'])) {
           totalAbsents += (data['absents'] as num? ?? 0).toInt();
         }
       }
@@ -785,11 +869,8 @@ class FirebaseService {
 
       for (var doc in advanceSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        if (campus != null && campus.isNotEmpty) {
-          if (staffIds.contains(data['staff_id'])) {
-            totalAdvancesCount++;
-          }
-        } else {
+        // Filter advances by staff that belong to allowed campuses
+        if (allowedStaffIds.contains(data['staff_id'])) {
           totalAdvancesCount++;
         }
       }
@@ -819,19 +900,31 @@ class FirebaseService {
           .orderBy('name')
           .get();
 
-      return snapshot.docs.map((doc) {
+      var campuses = snapshot.docs.map((doc) {
         return Campus.fromFirestore(doc.data(), doc.id);
       }).toList();
+
+      if (_currentAppUser != null) {
+        final role = roleFromString(_currentAppUser!.role);
+        if (role.isAdmin) {
+          campuses = campuses
+              .where((c) => _currentAppUser!.assignedCampuses.contains(c.name))
+              .toList();
+        }
+      }
+      return campuses;
     } catch (e) {
       print('Error getting campuses: $e');
       return [];
     }
   }
 
-  Future<String> addCampus(String name) async {
+  Future<String> addCampus(String name, {String? location}) async {
     try {
       final docRef = await _firestore.collection('campuses').add({
         'name': name,
+        'location': location,
+        'created_by': _currentAppUser?.id,
         'created_at': FieldValue.serverTimestamp(),
       });
       return docRef.id;
@@ -881,7 +974,7 @@ class FirebaseService {
     required String email,
     required String password,
     required String role,
-    String? campus,
+    List<String> assignedCampuses = const [],
   }) async {
     // Generate a random document ID for the user
     final docRef = _firestore.collection('users').doc();
@@ -894,7 +987,7 @@ class FirebaseService {
         'email': email,
         'password': password,
         'role': role,
-        'campus': campus ?? '',
+        'assigned_campuses': assignedCampuses,
         'created_at': FieldValue.serverTimestamp(),
       });
 
@@ -934,14 +1027,14 @@ class FirebaseService {
     required String email,
     String? password,
     required String role,
-    String? campus,
+    List<String> assignedCampuses = const [],
   }) async {
     try {
-      final updateData = {
+      final updateData = <String, dynamic>{
         'username': username,
         'email': email,
         'role': role,
-        'campus': campus ?? '',
+        'assigned_campuses': assignedCampuses,
       };
 
       // Only update password if provided

@@ -157,7 +157,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                       BoxShadow(
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withOpacity(0.3),
+                        ).colorScheme.primary.withValues(alpha: 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -186,7 +186,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                   style: TextStyle(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.5),
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
                     fontSize: 14,
                   ),
                 ),
@@ -200,11 +200,11 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: Theme.of(context).dividerColor.withOpacity(0.5),
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -297,8 +297,9 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty)
+                        if (value == null || value.trim().isEmpty) {
                           return 'Salary is required';
+                        }
                         final s = double.tryParse(value);
                         if (s == null || s <= 0) return 'Enter a valid salary';
                         return null;
@@ -308,7 +309,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                     _isLoadingCampuses
                         ? const Center(child: LinearProgressIndicator())
                         : DropdownButtonFormField<String>(
-                            value:
+                            initialValue:
                                 _campuses.any((c) => c.name == _selectedCampus)
                                 ? _selectedCampus
                                 : null,
@@ -345,7 +346,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Theme.of(context).dividerColor.withOpacity(0.5),
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
                   ),
                 ),
                 child: SwitchListTile(
@@ -359,7 +360,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  activeColor: Theme.of(context).colorScheme.primary,
+                  activeThumbColor: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 32),
@@ -397,7 +398,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                           elevation: 8,
                           shadowColor: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.4),
+                          ).colorScheme.primary.withValues(alpha: 0.4),
                         ),
                         child: _isLoading
                             ? const SizedBox(

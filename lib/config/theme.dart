@@ -53,7 +53,7 @@ class AppTheme {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: const Color(0xFF000000),
-      indicatorColor: primaryColor.withOpacity(0.2),
+      indicatorColor: primaryColor.withValues(alpha: 0.2),
       surfaceTintColor: Colors.transparent,
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -140,7 +140,7 @@ class AppTheme {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: const Color(0xFF121212),
-      selectedColor: primaryColor.withOpacity(0.3),
+      selectedColor: primaryColor.withValues(alpha: 0.3),
       labelStyle: GoogleFonts.inter(color: const Color(0xFFFAFAFA)),
       side: const BorderSide(color: Color(0xFF27272A)),
     ),
@@ -198,7 +198,7 @@ class AppTheme {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
-      indicatorColor: primaryColor.withOpacity(0.1),
+      indicatorColor: primaryColor.withValues(alpha: 0.1),
       surfaceTintColor: Colors.transparent,
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -279,7 +279,7 @@ class AppTheme {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: Colors.grey.shade100,
-      selectedColor: primaryColor.withOpacity(0.15),
+      selectedColor: primaryColor.withValues(alpha: 0.15),
       labelStyle: GoogleFonts.inter(color: const Color(0xFF1F2937)),
       side: BorderSide(color: Colors.grey.shade300),
     ),

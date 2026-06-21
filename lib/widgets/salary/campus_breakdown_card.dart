@@ -36,10 +36,10 @@ class CampusBreakdownCard extends StatelessWidget {
               : [Colors.deepPurple.shade50, Colors.purple.shade50],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.deepPurple.withOpacity(0.3)),
+        border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.1),
+            color: Colors.deepPurple.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -53,7 +53,7 @@ class CampusBreakdownCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.2),
+                  color: Colors.deepPurple.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -134,11 +134,11 @@ class _CampusItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? Colors.black.withOpacity(0.3) : Colors.white,
+        color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -181,7 +181,7 @@ class _CampusItem extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.deepPurple.withOpacity(0.1),
+                      color: Colors.deepPurple.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -200,7 +200,7 @@ class _CampusItem extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -250,7 +250,7 @@ class _CampusItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: totalPayable > 0 ? totalPaid / totalPayable : 0,
-              backgroundColor: Colors.grey.withOpacity(0.2),
+              backgroundColor: Colors.grey.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(Colors.green.shade400),
               minHeight: 6,
             ),

@@ -43,19 +43,34 @@ class _ManageCampusesScreenState extends State<ManageCampusesScreen> {
 
   Future<void> _addCampus() async {
     final TextEditingController nameController = TextEditingController();
+    final TextEditingController locationController = TextEditingController();
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Campus'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Campus Name',
-            hintText: 'e.g., North Campus',
-          ),
-          textCapitalization: TextCapitalization.words,
-          autofocus: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Campus Name',
+                hintText: 'e.g., North Campus',
+              ),
+              textCapitalization: TextCapitalization.words,
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: locationController,
+              decoration: const InputDecoration(
+                labelText: 'Location (Optional)',
+                hintText: 'e.g., 123 Main St',
+              ),
+              textCapitalization: TextCapitalization.words,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -67,7 +82,10 @@ class _ManageCampusesScreenState extends State<ManageCampusesScreen> {
               if (nameController.text.trim().isEmpty) return;
 
               try {
-                await _firebaseService.addCampus(nameController.text.trim());
+                await _firebaseService.addCampus(
+                  nameController.text.trim(),
+                  location: locationController.text.trim().isEmpty ? null : locationController.text.trim(),
+                );
                 if (context.mounted) Navigator.pop(context, true);
               } catch (e) {
                 if (context.mounted) {
@@ -146,7 +164,7 @@ class _ManageCampusesScreenState extends State<ManageCampusesScreen> {
                     size: 64,
                     color: Theme.of(
                       context,
-                    ).colorScheme.secondary.withOpacity(0.5),
+                    ).colorScheme.secondary.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -169,7 +187,7 @@ class _ManageCampusesScreenState extends State<ManageCampusesScreen> {
                     leading: CircleAvatar(
                       backgroundColor: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.1),
+                      ).colorScheme.primary.withValues(alpha: 0.1),
                       child: Icon(
                         Icons.business,
                         color: Theme.of(context).colorScheme.primary,
@@ -179,6 +197,9 @@ class _ManageCampusesScreenState extends State<ManageCampusesScreen> {
                       campus.name,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
+                    subtitle: campus.location != null
+                        ? Text(campus.location!)
+                        : null,
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),
                       color: Colors.red.shade400,

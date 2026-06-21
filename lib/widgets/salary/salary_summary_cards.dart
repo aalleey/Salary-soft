@@ -102,7 +102,7 @@ class _SummaryCard extends StatelessWidget {
         border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -116,7 +116,7 @@ class _SummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -130,7 +130,7 @@ class _SummaryCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -193,7 +193,7 @@ class LargeSummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: gradientColors.first.withOpacity(0.4),
+            color: gradientColors.first.withValues(alpha: 0.4),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -204,7 +204,7 @@ class LargeSummaryCard extends StatelessWidget {
           Positioned(
             right: -20,
             top: -20,
-            child: Icon(icon, size: 100, color: Colors.white.withOpacity(0.15)),
+            child: Icon(icon, size: 100, color: Colors.white.withValues(alpha: 0.15)),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +212,7 @@ class LargeSummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: Colors.white, size: 24),
@@ -222,7 +222,7 @@ class LargeSummaryCard extends StatelessWidget {
                 subtitle,
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 4),
@@ -247,7 +247,7 @@ class LargeSummaryCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
             ],

@@ -15,8 +15,12 @@ class Salary {
   final double advanceAmount;
   final String? campus;
   final String? phone;
-  final bool isPaid;
+  final bool isPaid; // Legacy fallback
   final String? paidDate;
+  final double paidAmount;
+  final double remainingAmount;
+  final String status; // 'Paid', 'Partial Paid', 'Pending'
+  final String? notes;
 
   // Helper getters for formatting
 
@@ -36,11 +40,19 @@ class Salary {
   String get formattedAdvanceAmount =>
       'Rs ${NumberFormat('#,##0').format(advanceAmount)}';
 
-  /// Status text ("Paid" or "Unpaid")
-  String get statusText => isPaid ? 'Paid' : 'Unpaid';
+  /// Status text ("Paid", "Partial Paid", "Pending")
+  String get statusText {
+    if (status.isNotEmpty && status != 'Pending') return status;
+    return isPaid ? 'Paid' : 'Pending';
+  }
 
-  /// Status color (green for paid, orange for unpaid)
-  Color get statusColor => isPaid ? Colors.green : Colors.orange;
+  /// Status color (green for paid, blue for partial, orange for pending)
+  Color get statusColor {
+    final s = statusText;
+    if (s == 'Paid') return Colors.green;
+    if (s == 'Partial Paid') return Colors.blue;
+    return Colors.orange;
+  }
 
   /// Month and year formatted (e.g., "January 2026")
   String get monthYearText =>
@@ -77,6 +89,10 @@ class Salary {
     this.phone,
     this.isPaid = false,
     this.paidDate,
+    this.paidAmount = 0.0,
+    this.remainingAmount = 0.0,
+    this.status = 'Pending',
+    this.notes,
   });
 
   factory Salary.fromFirestore(Map<String, dynamic> data, String documentId) {
@@ -96,7 +112,37 @@ class Salary {
       phone: data['phone'],
       isPaid: data['is_paid'] ?? false,
       paidDate: data['paid_date'],
+      paidAmount: _parsePaidAmount(data),
+      remainingAmount: _parseRemainingAmount(data),
+      status: _parseStatus(data),
+      notes: data['notes'],
     );
+  }
+
+  static double _parsePaidAmount(Map<String, dynamic> data) {
+    if (data['paid_amount'] != null) {
+      return (data['paid_amount'] as num).toDouble();
+    }
+    // Legacy fallback
+    if (data['is_paid'] == true) {
+      return (data['total_salary'] as num?)?.toDouble() ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  static double _parseRemainingAmount(Map<String, dynamic> data) {
+    if (data['remaining_amount'] != null) {
+      return (data['remaining_amount'] as num).toDouble();
+    }
+    // Legacy fallback
+    if (data['is_paid'] == true) return 0.0;
+    return (data['total_salary'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  static String _parseStatus(Map<String, dynamic> data) {
+    if (data['status'] != null) return data['status'] as String;
+    // Legacy fallback
+    return (data['is_paid'] == true) ? 'Paid' : 'Pending';
   }
 
   Map<String, dynamic> toFirestore() {
@@ -115,6 +161,10 @@ class Salary {
       'phone': phone,
       'is_paid': isPaid,
       'paid_date': paidDate,
+      'paid_amount': paidAmount,
+      'remaining_amount': remainingAmount,
+      'status': status,
+      'notes': notes,
     };
   }
 }

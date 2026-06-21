@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import 'dashboard_screen.dart';
+import '../auth/models/app_user.dart';
 import 'login_screen.dart';
+import 'dashboard_screen.dart';
+import 'employee_dashboard_screen.dart';
+import '../owner/screens/owner_dashboard_screen.dart';
+import '../super_admin/screens/super_admin_dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,7 +25,7 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _animController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1600),
       vsync: this,
     );
     _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
@@ -45,40 +49,58 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuth() async {
-    // Wait for animation and minimum splash time
+    // Minimum splash duration for branding
     await Future.delayed(const Duration(seconds: 2));
-
     if (!mounted) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.checkAuth();
-
     if (!mounted) return;
 
-    // Navigate based on authentication status
+    Widget destination;
+
     if (authProvider.isAuthenticated) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
+      // ── Route based on role ────────────────────────────────────────────
+      final role = authProvider.userRole ?? UserRole.employee;
+      switch (role) {
+        case UserRole.superUser:
+          destination = const DashboardScreen();
+          break;
+        case UserRole.admin:
+          destination = const DashboardScreen();
+          break;
+        case UserRole.employee:
+          destination = const EmployeeDashboardScreen();
+          break;
+      }
     } else {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      destination = const LoginScreen();
     }
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, animation, __) => destination,
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 600),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.deepPurple.shade800,
-              Colors.purple.shade600,
-              Colors.pink.shade400,
+              Color(0xFF1A0533),
+              Color(0xFF3B0764),
+              Color(0xFF312E81),
             ],
           ),
         ),
@@ -89,21 +111,25 @@ class _SplashScreenState extends State<SplashScreen>
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Container(
-                  padding: const EdgeInsets.all(28),
+                  padding: const EdgeInsets.all(26),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF7C3AED), Color(0xFFF806CC)],
+                    ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 30,
-                        spreadRadius: 5,
+                        color: const Color(0xFF7C3AED).withValues(alpha: 0.55),
+                        blurRadius: 40,
+                        spreadRadius: 8,
                       ),
                     ],
                   ),
                   child: const Icon(
-                    Icons.account_balance_wallet,
-                    size: 80,
+                    Icons.account_balance_wallet_rounded,
+                    size: 72,
                     color: Colors.white,
                   ),
                 ),
@@ -116,29 +142,30 @@ class _SplashScreenState extends State<SplashScreen>
                     const Text(
                       'SalarySoft',
                       style: TextStyle(
-                        fontSize: 36,
+                        fontSize: 38,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        letterSpacing: -0.5,
+                        letterSpacing: -1.0,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Employee Salary Management',
+                      'Enterprise Payroll Management',
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 15,
+                        color: Colors.white.withValues(alpha: 0.65),
+                        letterSpacing: 0.3,
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 52),
                     SizedBox(
-                      width: 32,
-                      height: 32,
+                      width: 28,
+                      height: 28,
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white.withOpacity(0.9),
+                          Colors.white.withValues(alpha: 0.8),
                         ),
-                        strokeWidth: 3,
+                        strokeWidth: 2.5,
                       ),
                     ),
                   ],

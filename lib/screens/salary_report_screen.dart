@@ -25,7 +25,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
   String? _selectedCampus;
-  String _searchQuery = '';
+  final String _searchQuery = '';
   String _filterStatus = 'All'; // All, Paid, Unpaid
 
   // Selection state
@@ -70,7 +70,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
   Future<void> _initializeData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
-    _userCampus = user?.campus;
+    _userCampus = authProvider.activeCampus;
     _isSuperAdmin = _userCampus == null || _userCampus!.isEmpty;
 
     if (_isSuperAdmin) {
@@ -802,8 +802,8 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: isPaid
-            ? Colors.green.withOpacity(0.1)
-            : Colors.orange.withOpacity(0.1),
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.orange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -940,7 +940,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 28),

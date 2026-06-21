@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/user.dart';
@@ -13,47 +14,49 @@ class AuthService {
 
   Future<bool> login(String username, String password) async {
     try {
-      print('AuthService: Calling FirebaseAuthService.login()');
+      debugPrint('AuthService: Calling FirebaseAuthService.login()');
       bool success = await _firebaseAuth.login(username, password);
-      print('AuthService: FirebaseAuthService.login() returned: $success');
+      debugPrint('AuthService: FirebaseAuthService.login() returned: $success');
 
       if (success) {
         _currentUser = _firebaseAuth.currentUser;
+        FirebaseService().setAppUser(_currentUser);
       } else {
         // Try staff login if admin login fails
-        print('AuthService: Admin login failed, trying staff login...');
+        debugPrint('AuthService: Admin login failed, trying staff login...');
         final staff = await FirebaseService().verifyStaffCredentials(
           username,
           password,
         );
 
         if (staff != null) {
-          print('AuthService: Staff login successful: ${staff.name}');
+          debugPrint('AuthService: Staff login successful: ${staff.name}');
           _currentUser = User(
             id: staff.id,
             username: staff.name,
             role: 'employee',
-            campus: staff.campus,
+            assignedCampuses: [staff.campus],
           );
+          FirebaseService().setAppUser(_currentUser);
           success = true;
         }
       }
 
       if (success) {
         if (_currentUser != null) {
-          print('AuthService: User logged in: ${_currentUser!.username}');
+          debugPrint('AuthService: User logged in: ${_currentUser!.username}');
           await _saveUserData(_currentUser!.toJson());
         } else {
-          print(
+          debugPrint(
             'AuthService: WARNING - Login successful but currentUser is null',
           );
         }
       } else {
-        print('AuthService: Login failed');
+        debugPrint('AuthService: Login failed');
       }
       return success;
     } catch (e) {
-      print('AuthService: Login error: $e');
+      debugPrint('AuthService: Login error: $e');
       return false;
     }
   }
@@ -62,9 +65,10 @@ class AuthService {
     try {
       await _firebaseAuth.logout();
       _currentUser = null;
+      FirebaseService().setAppUser(null);
       await _clearUserData();
     } catch (e) {
-      print('Logout error: $e');
+      debugPrint('Logout error: $e');
     }
   }
 
@@ -73,12 +77,19 @@ class AuthService {
       final success = await _firebaseAuth.checkAuth();
       if (success) {
         _currentUser = _firebaseAuth.currentUser;
+        FirebaseService().setAppUser(_currentUser);
       }
       return success;
     } catch (e) {
-      print('Auth check error: $e');
+      debugPrint('Auth check error: $e');
       return false;
     }
+  }
+
+  /// Sends a Firebase password-reset email.
+  /// Returns null on success, or an error message string on failure.
+  Future<String?> sendPasswordReset(String email) async {
+    return _firebaseAuth.sendPasswordResetEmail(email);
   }
 
   Future<void> _saveUserData(Map<String, dynamic> userData) async {
@@ -86,7 +97,7 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(AppConfig.userKey, jsonEncode(userData));
     } catch (e) {
-      print('Error saving user data: $e');
+      debugPrint('Error saving user data: $e');
     }
   }
 
@@ -97,11 +108,11 @@ class AuthService {
 
   Future<bool> loadUserData() async {
     try {
-      // Try to load from Firebase first
       final success = await _firebaseAuth.loadUserData();
       if (success) {
         _currentUser = _firebaseAuth.currentUser;
         if (_currentUser != null) {
+          FirebaseService().setAppUser(_currentUser);
           await _saveUserData(_currentUser!.toJson());
         }
         return true;
@@ -110,16 +121,16 @@ class AuthService {
       // Fallback to local storage
       final prefs = await SharedPreferences.getInstance();
       final userDataString = prefs.getString(AppConfig.userKey);
-
       if (userDataString != null) {
         final userData = jsonDecode(userDataString) as Map<String, dynamic>;
         _currentUser = User.fromJson(userData);
+        FirebaseService().setAppUser(_currentUser);
         return true;
       }
 
       return false;
     } catch (e) {
-      print('Load user data error: $e');
+      debugPrint('Load user data error: $e');
       return false;
     }
   }

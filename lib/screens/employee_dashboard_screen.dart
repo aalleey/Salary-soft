@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/user.dart';
 import '../models/salary.dart';
 import '../models/attendance.dart';
 import '../services/firebase_service.dart';
 import 'login_screen.dart';
 import 'package:intl/intl.dart';
+import '../shared/widgets/stat_card_widget.dart';
+import '../shared/widgets/glass_card_widget.dart';
 
 class EmployeeDashboardScreen extends StatefulWidget {
   const EmployeeDashboardScreen({super.key});
@@ -185,7 +188,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.normal,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             Text(
@@ -217,7 +220,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
                   height: 200,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -229,7 +232,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -245,7 +248,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
                   ),
                   child: CircleAvatar(
                     radius: 35,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
                     child: Text(
                       (_currentUser?.username ?? 'E')[0].toUpperCase(),
                       style: const TextStyle(
@@ -262,6 +265,18 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
         ),
       ),
       actions: [
+        Consumer<ThemeProvider>(
+          builder: (context, themeProvider, child) {
+            return IconButton(
+              icon: Icon(
+                themeProvider.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                color: Colors.white,
+              ),
+              onPressed: () => themeProvider.toggleTheme(),
+              tooltip: themeProvider.isDarkMode ? 'Light Mode' : 'Dark Mode',
+            );
+          },
+        ),
         IconButton(
           icon: const Icon(Icons.refresh, color: Colors.white),
           onPressed: _loadData,
@@ -292,29 +307,29 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
       child: Row(
         children: [
           Expanded(
-            child: _buildStatCard(
+            child: StatCard(
               icon: Icons.account_balance_wallet,
-              label: 'Total Earned',
-              value: 'Rs ${NumberFormat.compact().format(totalEarned)}',
-              gradient: [Color(0xFF667eea), Color(0xFF764ba2)],
+              label: 'Earned',
+              value: NumberFormat.compact().format(totalEarned),
+              gradient: const [Color(0xFF667eea), Color(0xFF764ba2)],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
-            child: _buildStatCard(
+            child: StatCard(
               icon: Icons.check_circle,
-              label: 'Paid Months',
+              label: 'Paid',
               value: '$paidCount',
-              gradient: [Color(0xFF11998e), Color(0xFF38ef7d)],
+              gradient: const [Color(0xFF11998e), Color(0xFF38ef7d)],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
-            child: _buildStatCard(
+            child: StatCard(
               icon: Icons.event_busy,
-              label: 'Total Absents',
+              label: 'Absents',
               value: '$totalAbsents',
-              gradient: [Color(0xFFfc4a1a), Color(0xFFf7b733)],
+              gradient: const [Color(0xFFfc4a1a), Color(0xFFf7b733)],
             ),
           ),
         ],
@@ -322,54 +337,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required List<Color> gradient,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradient,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: gradient.first.withOpacity(0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.white.withOpacity(0.8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Removed _buildStatCard
 
   Widget _buildTabSection(bool isDark) {
     return Column(
@@ -469,7 +437,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradient.first.withOpacity(0.3),
+              color: gradient.first.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -528,8 +496,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
                     ),
                     decoration: BoxDecoration(
                       color: salary.isPaid
-                          ? Colors.green.withOpacity(0.15)
-                          : Colors.orange.withOpacity(0.15),
+                          ? Colors.green.withValues(alpha: 0.15)
+                          : Colors.orange.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -570,7 +538,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.grey.shade800.withOpacity(0.5)
+                        ? Colors.grey.shade800.withValues(alpha: 0.5)
                         : Colors.grey.shade50,
                   ),
                   child: Column(
@@ -673,7 +641,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 18),
@@ -733,13 +701,13 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: hasIssues
-                ? Colors.orange.withOpacity(0.3)
-                : Colors.green.withOpacity(0.3),
+                ? Colors.orange.withValues(alpha: 0.3)
+                : Colors.green.withValues(alpha: 0.3),
             width: 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -837,9 +805,9 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -855,7 +823,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
           ),
           Text(
             label,
-            style: TextStyle(fontSize: 10, color: color.withOpacity(0.8)),
+            style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8)),
           ),
         ],
       ),
@@ -867,26 +835,34 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
     required String title,
     required String subtitle,
   }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.deepPurple.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 48, color: Colors.deepPurple.shade300),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: GlassCard(
+        padding: const EdgeInsets.all(24),
+        child: SizedBox(
+          width: double.infinity,
+          height: 180,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 48, color: Colors.deepPurple.shade300),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(subtitle, style: TextStyle(color: Colors.grey.shade600)),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(subtitle, style: TextStyle(color: Colors.grey.shade600)),
-        ],
+        ),
       ),
     );
   }

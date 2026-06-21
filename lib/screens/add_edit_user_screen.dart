@@ -19,8 +19,8 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  String _selectedRole = 'campus_admin';
-  String? _selectedCampus;
+  String _selectedRole = 'admin';
+  List<String> _selectedCampuses = [];
   List<Campus> _campuses = [];
   bool _isLoading = false;
   bool _isLoadingCampuses = true;
@@ -36,10 +36,16 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
     if (isEditing) {
       _usernameController.text = widget.user!['username'] ?? '';
       _emailController.text = widget.user!['email'] ?? '';
-      _selectedRole = widget.user!['role'] ?? 'campus_admin';
-      final userCampus = widget.user!['campus'] as String?;
-      if (userCampus != null && userCampus.isNotEmpty) {
-        _selectedCampus = userCampus;
+      _selectedRole = widget.user!['role'] ?? 'admin';
+      final assignedCampuses = widget.user!['assigned_campuses'] as List<dynamic>?;
+      if (assignedCampuses != null && assignedCampuses.isNotEmpty) {
+        _selectedCampuses = List<String>.from(assignedCampuses);
+      } else {
+        // Fallback for legacy data
+        final userCampus = widget.user!['campus'] as String?;
+        if (userCampus != null && userCampus.isNotEmpty) {
+          _selectedCampuses = [userCampus];
+        }
       }
     }
   }
@@ -71,11 +77,11 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
   Future<void> _saveUser() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Validate campus selection for campus admins
-    if (_selectedRole == 'campus_admin' && _selectedCampus == null) {
+    // Validate campus selection for admin
+    if (_selectedRole == 'admin' && _selectedCampuses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select a campus for the campus admin'),
+          content: Text('Please select at least one campus for the admin'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -94,7 +100,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
               ? _passwordController.text
               : null,
           role: _selectedRole,
-          campus: _selectedRole == 'admin' ? '' : _selectedCampus,
+          assignedCampuses: _selectedRole == 'superUser' ? [] : _selectedCampuses,
         );
       } else {
         await _firebaseService.addUser(
@@ -102,7 +108,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
           role: _selectedRole,
-          campus: _selectedRole == 'admin' ? '' : _selectedCampus,
+          assignedCampuses: _selectedRole == 'superUser' ? [] : _selectedCampuses,
         );
       }
 
@@ -317,52 +323,67 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
 
                     // Role Selector
                     DropdownButtonFormField<String>(
-                      value: _selectedRole,
+                      initialValue: _selectedRole,
                       decoration: _buildInputDecoration(
                         label: 'Role',
                         icon: Icons.admin_panel_settings_outlined,
                       ),
                       items: const [
                         DropdownMenuItem(
-                          value: 'admin',
-                          child: Text('Super Admin (Full Access)'),
+                          value: 'superUser',
+                          child: Text('Super User (Full Access)'),
                         ),
                         DropdownMenuItem(
-                          value: 'campus_admin',
-                          child: Text('Campus Admin (Single Campus)'),
+                          value: 'admin',
+                          child: Text('Admin (Specific Campuses)'),
                         ),
                       ],
                       onChanged: (value) {
                         setState(() {
                           _selectedRole = value!;
-                          if (value == 'admin') {
-                            _selectedCampus = null;
+                          if (value == 'superUser') {
+                            _selectedCampuses.clear();
                           }
                         });
                       },
                     ),
                     const SizedBox(height: 16),
 
-                    // Campus Selector (only for campus_admin)
-                    if (_selectedRole == 'campus_admin') ...[
+                    // Campus Selector (only for admin)
+                    if (_selectedRole == 'admin') ...[
                       _isLoadingCampuses
                           ? const Center(child: CircularProgressIndicator())
-                          : DropdownButtonFormField<String>(
-                              value: _selectedCampus,
-                              decoration: _buildInputDecoration(
-                                label: 'Assigned Campus *',
-                                icon: Icons.business,
-                              ),
-                              hint: const Text('Select a campus'),
-                              items: _campuses.map((campus) {
-                                return DropdownMenuItem(
-                                  value: campus.name,
-                                  child: Text(campus.name),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() => _selectedCampus = value);
-                              },
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Assigned Campuses *',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                ..._campuses.map((campus) {
+                                  final isSelected = _selectedCampuses.contains(campus.name);
+                                  return CheckboxListTile(
+                                    title: Text(campus.name),
+                                    value: isSelected,
+                                    onChanged: (bool? value) {
+                                      setState(() {
+                                        if (value == true) {
+                                          _selectedCampuses.add(campus.name);
+                                        } else {
+                                          _selectedCampuses.remove(campus.name);
+                                        }
+                                      });
+                                    },
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                  );
+                                }),
+                              ],
                             ),
                       const SizedBox(height: 8),
                       Container(
@@ -382,7 +403,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'This user will only be able to manage data for the selected campus.',
+                                'This user will only be able to manage data for the selected campuses.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.amber.shade900,
