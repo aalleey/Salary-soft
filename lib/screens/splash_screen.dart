@@ -5,8 +5,6 @@ import '../auth/models/app_user.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
 import 'employee_dashboard_screen.dart';
-import '../owner/screens/owner_dashboard_screen.dart';
-import '../super_admin/screens/super_admin_dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -80,10 +78,8 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, animation, __) => destination,
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 600),
       ),
     );
@@ -97,11 +93,7 @@ class _SplashScreenState extends State<SplashScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A0533),
-              Color(0xFF3B0764),
-              Color(0xFF312E81),
-            ],
+            colors: [Color(0xFF1A0533), Color(0xFF3B0764), Color(0xFF312E81)],
           ),
         ),
         child: Center(

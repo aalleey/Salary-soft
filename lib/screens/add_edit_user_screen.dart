@@ -28,6 +28,24 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
 
   bool get isEditing => widget.user != null;
 
+  /// Normalizes any Firestore role string to one of the dropdown values.
+  String _normalizeRole(String raw) {
+    final normalized = raw.toLowerCase().trim().replaceAll(' ', '_');
+    switch (normalized) {
+      case 'superuser':
+      case 'super_user':
+      case 'super_admin':
+      case 'app_owner':
+      case 'owner':
+        return 'superUser';
+      case 'admin':
+      case 'campus_admin':
+        return 'admin';
+      default:
+        return 'admin';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,7 +54,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
     if (isEditing) {
       _usernameController.text = widget.user!['username'] ?? '';
       _emailController.text = widget.user!['email'] ?? '';
-      _selectedRole = widget.user!['role'] ?? 'admin';
+      _selectedRole = _normalizeRole(widget.user!['role'] ?? 'admin');
       final assignedCampuses = widget.user!['assigned_campuses'] as List<dynamic>?;
       if (assignedCampuses != null && assignedCampuses.isNotEmpty) {
         _selectedCampuses = List<String>.from(assignedCampuses);

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/auth_provider.dart';
+import '../auth/models/app_user.dart';
 import '../providers/theme_provider.dart';
 import '../services/firebase_service.dart';
 import 'login_screen.dart';
@@ -237,7 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     final userRole = authProvider.userRole;
     final assignedCampuses = user?.assignedCampuses ?? <String>[];
     
-    final bool canSwitchCampus = userRole?.isAdmin == true && assignedCampuses.length > 1;
+    final bool canSwitchCampus = (userRole == UserRole.admin || userRole == UserRole.superUser) && assignedCampuses.length > 1;
     return SliverAppBar(
       expandedHeight: 280.0,
       floating: false,
@@ -445,7 +446,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          userRole?.isSuperUser == true
+                          userRole == UserRole.superUser
                               ? 'Super User Dashboard'
                               : '${activeCampus ?? "Admin"} Campus',
                           style: const TextStyle(

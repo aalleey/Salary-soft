@@ -94,6 +94,7 @@ UserRole roleFromString(String? raw) {
   switch (normalized) {
     case 'superuser':
     case 'super_user':
+    case 'super_admin':
     case 'app_owner':
     case 'owner':
       return UserRole.superUser;

@@ -7,8 +7,6 @@ import '../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'employee_dashboard_screen.dart';
 import 'forgot_password_screen.dart';
-import '../owner/screens/owner_dashboard_screen.dart';
-import '../super_admin/screens/super_admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen>
   String? _errorMessage;
 
   // ── Animation controllers ─────────────────────────────────────────────────
-  late AnimationController _bgController;   // background gradient shift
+  late AnimationController _bgController; // background gradient shift
   late AnimationController _orb1Controller; // top-right orb drift
   late AnimationController _orb2Controller; // bottom-left orb drift
   late AnimationController _cardController; // card entrance
@@ -63,13 +61,13 @@ class _LoginScreenState extends State<LoginScreen>
       parent: _cardController,
       curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
     );
-    _cardSlide = Tween<Offset>(
-      begin: const Offset(0, 0.16),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _cardController,
-      curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
-    ));
+    _cardSlide = Tween<Offset>(begin: const Offset(0, 0.16), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _cardController,
+            curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _cardController.forward();
     _loadSavedUsername();
@@ -119,7 +117,8 @@ class _LoginScreenState extends State<LoginScreen>
     } else {
       setState(() {
         _errorMessage =
-            authProvider.error ?? 'Login failed. Please check your credentials.';
+            authProvider.error ??
+            'Login failed. Please check your credentials.';
       });
     }
   }
@@ -130,7 +129,8 @@ class _LoginScreenState extends State<LoginScreen>
 
     switch (role) {
       case UserRole.superUser:
-        destination = const DashboardScreen(); // Global dashboard handles SuperUser too
+        destination =
+            const DashboardScreen(); // Global dashboard handles SuperUser too
         break;
       case UserRole.admin:
         destination = const DashboardScreen();
@@ -143,10 +143,8 @@ class _LoginScreenState extends State<LoginScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, animation, __) => destination,
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );
@@ -168,8 +166,10 @@ class _LoginScreenState extends State<LoginScreen>
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 36,
+                ),
                 child: FadeTransition(
                   opacity: _cardFade,
                   child: SlideTransition(
@@ -197,7 +197,9 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Consumer<ThemeProvider>(
                   builder: (context, theme, _) => IconButton(
                     icon: Icon(
-                      theme.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      theme.isDarkMode
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
                       color: Colors.white,
                     ),
                     onPressed: () => theme.toggleTheme(),
@@ -223,12 +225,21 @@ class _LoginScreenState extends State<LoginScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color.lerp(const Color(0xFF1A0533), const Color(0xFF0D1B4B),
-                  _bgController.value)!,
-              Color.lerp(const Color(0xFF3B0764), const Color(0xFF1E1B4B),
-                  _bgController.value)!,
-              Color.lerp(const Color(0xFF4C1D95), const Color(0xFF1A1A4E),
-                  _bgController.value)!,
+              Color.lerp(
+                const Color(0xFF1A0533),
+                const Color(0xFF0D1B4B),
+                _bgController.value,
+              )!,
+              Color.lerp(
+                const Color(0xFF3B0764),
+                const Color(0xFF1E1B4B),
+                _bgController.value,
+              )!,
+              Color.lerp(
+                const Color(0xFF4C1D95),
+                const Color(0xFF1A1A4E),
+                _bgController.value,
+              )!,
             ],
           ),
         ),
@@ -250,10 +261,12 @@ class _LoginScreenState extends State<LoginScreen>
               height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [
-                  const Color(0xFF7C3AED).withValues(alpha: 0.28),
-                  const Color(0xFF7C3AED).withValues(alpha: 0.0),
-                ]),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF7C3AED).withValues(alpha: 0.28),
+                    const Color(0xFF7C3AED).withValues(alpha: 0.0),
+                  ],
+                ),
               ),
             ),
           ),
@@ -269,10 +282,12 @@ class _LoginScreenState extends State<LoginScreen>
               height: 360,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [
-                  const Color(0xFF06B6D4).withValues(alpha: 0.18),
-                  const Color(0xFF06B6D4).withValues(alpha: 0.0),
-                ]),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF06B6D4).withValues(alpha: 0.18),
+                    const Color(0xFF06B6D4).withValues(alpha: 0.0),
+                  ],
+                ),
               ),
             ),
           ),
@@ -288,10 +303,12 @@ class _LoginScreenState extends State<LoginScreen>
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [
-                  const Color(0xFFF806CC).withValues(alpha: 0.13),
-                  const Color(0xFFF806CC).withValues(alpha: 0.0),
-                ]),
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFF806CC).withValues(alpha: 0.13),
+                    const Color(0xFFF806CC).withValues(alpha: 0.0),
+                  ],
+                ),
               ),
             ),
           ),
@@ -425,8 +442,10 @@ class _LoginScreenState extends State<LoginScreen>
                   icon: Icons.lock_outline_rounded,
                   isPassword: true,
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter your password';
-                    if (v.length < 6) return 'Password must be at least 6 characters';
+                    if (v == null || v.isEmpty)
+                      return 'Please enter your password';
+                    if (v.length < 6)
+                      return 'Password must be at least 6 characters';
                     return null;
                   },
                 ),
@@ -530,8 +549,11 @@ class _LoginScreenState extends State<LoginScreen>
           color: Colors.white.withValues(alpha: 0.55),
           fontSize: 14,
         ),
-        prefixIcon: Icon(icon,
-            color: Colors.white.withValues(alpha: 0.55), size: 20),
+        prefixIcon: Icon(
+          icon,
+          color: Colors.white.withValues(alpha: 0.55),
+          size: 20,
+        ),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -549,32 +571,29 @@ class _LoginScreenState extends State<LoginScreen>
         fillColor: Colors.white.withValues(alpha: 0.07),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Color(0xFF7C3AED), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF7C3AED), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Color(0xFFEF4444), width: 2),
+          borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
         ),
         errorStyle: const TextStyle(color: Color(0xFFEF4444)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
     );
   }
@@ -593,14 +612,16 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: Color(0xFFEF4444), size: 18),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFEF4444),
+            size: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               _errorMessage!,
-              style: const TextStyle(
-                  color: Color(0xFFEF4444), fontSize: 13),
+              style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
             ),
           ),
           GestureDetector(
@@ -636,8 +657,9 @@ class _LoginScreenState extends State<LoginScreen>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF7C3AED)
-                      .withValues(alpha: loading ? 0.2 : 0.45),
+                  color: const Color(
+                    0xFF7C3AED,
+                  ).withValues(alpha: loading ? 0.2 : 0.45),
                   blurRadius: 22,
                   offset: const Offset(0, 8),
                 ),
@@ -650,8 +672,7 @@ class _LoginScreenState extends State<LoginScreen>
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   : const Row(
@@ -667,8 +688,11 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                         SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_rounded,
-                            color: Colors.white, size: 20),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ],
                     ),
             ),

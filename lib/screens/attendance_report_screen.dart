@@ -508,20 +508,45 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             const SizedBox(width: 8),
             _buildStatBadge('H', attendance.halfLeaves, Colors.amber),
 
-            // Delete button (only for super admins and if record exists)
-            if (_isSuperAdmin && hasRecord) ...[
+            // Actions for super admin
+            if (_isSuperAdmin) ...[
               const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: Colors.red.shade400,
-                  size: 22,
+              if (hasRecord)
+                IconButton(
+                  icon: Icon(
+                    Icons.edit_outlined,
+                    color: Colors.blue.shade400,
+                    size: 22,
+                  ),
+                  onPressed: () => _editAttendance(data),
+                  tooltip: 'Edit Attendance',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                )
+              else
+                IconButton(
+                  icon: Icon(
+                    Icons.add_circle_outline,
+                    color: Colors.green.shade400,
+                    size: 22,
+                  ),
+                  onPressed: () => _editAttendance(data),
+                  tooltip: 'Add Attendance',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-                onPressed: () => _confirmDeleteAttendance(data),
-                tooltip: 'Delete Attendance',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
+              if (hasRecord)
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: Colors.red.shade400,
+                    size: 22,
+                  ),
+                  onPressed: () => _confirmDeleteAttendance(data),
+                  tooltip: 'Delete Attendance',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
             ],
           ],
         ),

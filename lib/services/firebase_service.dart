@@ -943,6 +943,43 @@ class FirebaseService {
     }
   }
 
+  Future<void> updateCampus(String id, {required String name, String? location}) async {
+    try {
+      await _firestore.collection('campuses').doc(id).update({
+        'name': name,
+        'location': location,
+      });
+    } catch (e) {
+      print('Error updating campus: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns a map of campusName -> list of admin usernames assigned to that campus.
+  Future<Map<String, List<String>>> getAdminsByCampus() async {
+    try {
+      final snapshot = await _firestore.collection('users').get();
+      final Map<String, List<String>> result = {};
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final username = data['username'] as String? ?? 'Unknown';
+        final assignedCampuses = data['assigned_campuses'] as List<dynamic>? ?? [];
+
+        for (var campus in assignedCampuses) {
+          final campusName = campus.toString();
+          result.putIfAbsent(campusName, () => []);
+          result[campusName]!.add(username);
+        }
+      }
+
+      return result;
+    } catch (e) {
+      print('Error getting admins by campus: $e');
+      return {};
+    }
+  }
+
   // User management methods
   Future<List<Map<String, dynamic>>> getAllUsers() async {
     try {

@@ -31,12 +31,32 @@ class FirebaseAuthService {
       if (_looksLikeEmail(usernameOrEmail)) {
         email = usernameOrEmail.trim();
       } else {
-        // Look up by username field
-        final byUsername = await _firestore
+        // Look up by username field (exact match first)
+        var byUsername = await _firestore
             .collection('users')
             .where('username', isEqualTo: usernameOrEmail.trim())
             .limit(1)
             .get();
+
+        // If exact match fails, try case-insensitive lookup
+        if (byUsername.docs.isEmpty) {
+          debugPrint('FirebaseAuthService: exact username not found, trying case-insensitive...');
+          final allUsers = await _firestore.collection('users').get();
+          final inputLower = usernameOrEmail.trim().toLowerCase();
+          
+          for (var doc in allUsers.docs) {
+            final docUsername = (doc.data()['username'] as String? ?? '').toLowerCase();
+            if (docUsername == inputLower) {
+              // Found a case-insensitive match
+              byUsername = await _firestore
+                  .collection('users')
+                  .where('email', isEqualTo: doc.data()['email'])
+                  .limit(1)
+                  .get();
+              break;
+            }
+          }
+        }
 
         if (byUsername.docs.isEmpty) {
           debugPrint('FirebaseAuthService: username not found: $usernameOrEmail');
@@ -62,20 +82,18 @@ class FirebaseAuthService {
       } on firebase_auth.FirebaseAuthException catch (e) {
         debugPrint('FirebaseAuthService: FirebaseAuthException — ${e.code}: ${e.message}');
 
-        // If the user exists in Firestore but has no Firebase Auth account yet,
-        // create one automatically so legacy accounts keep working.
-        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-          try {
-            final newCred = await _auth.createUserWithEmailAndPassword(
-              email: email,
-              password: password,
-            );
-            authSuccess = newCred.user != null;
-            debugPrint('FirebaseAuthService: created new Firebase Auth account for $email');
-          } catch (createErr) {
-            debugPrint('FirebaseAuthService: could not create account — $createErr');
-            return false;
-          }
+        if (e.code == 'user-not-found') {
+          // User doesn't exist in Firebase Auth — create account (legacy migration)
+          authSuccess = await _tryCreateAuthAccount(email, password);
+        } else if (e.code == 'invalid-credential') {
+          // In newer Firebase Auth SDKs, 'invalid-credential' can mean either
+          // "wrong password" or "user not found". Try creating an account:
+          // - If it succeeds → the user had no Auth account (legacy migration)
+          // - If it fails with 'email-already-in-use' → wrong password
+          authSuccess = await _tryCreateAuthAccount(email, password);
+        } else if (e.code == 'wrong-password') {
+          debugPrint('FirebaseAuthService: wrong password for $email');
+          return false;
         } else {
           return false;
         }
@@ -179,6 +197,22 @@ class FirebaseAuthService {
     } catch (e) {
       debugPrint('FirebaseAuthService: _fetchUserProfile error — $e');
       return null;
+    }
+  }
+
+  /// Attempts to create a Firebase Auth account for a user that exists
+  /// in Firestore but has no Firebase Auth entry (legacy migration).
+  Future<bool> _tryCreateAuthAccount(String email, String password) async {
+    try {
+      final newCred = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      debugPrint('FirebaseAuthService: created new Firebase Auth account for $email');
+      return newCred.user != null;
+    } catch (createErr) {
+      debugPrint('FirebaseAuthService: could not create account — $createErr');
+      return false;
     }
   }
 

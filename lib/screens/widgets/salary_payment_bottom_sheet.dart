@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/salary.dart';
 import '../../services/firebase_service.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../employee_salary_history_screen.dart';
 
 class SalaryPaymentBottomSheet extends StatefulWidget {
@@ -138,10 +140,86 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
                   icon: const Icon(Icons.history_rounded, size: 18),
                   label: const Text('History'),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                )
+                if (Provider.of<AuthProvider>(context, listen: false).activeCampus == null || Provider.of<AuthProvider>(context, listen: false).activeCampus!.isEmpty)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) async {
+                      if (value == 'recalculate') {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Recalculate Salary'),
+                            content: const Text('Are you sure you want to recalculate this salary based on current attendance and advances?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Recalculate')),
+                            ],
+                          ),
+                        );
+                        if (confirm == true && mounted) {
+                          setState(() => _isLoading = true);
+                          try {
+                            await _firebaseService.recalculateAndSaveSalary(
+                              widget.salary.staffId,
+                              widget.salary.month,
+                              widget.salary.year,
+                            );
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Salary recalculated successfully'), backgroundColor: Colors.green));
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isLoading = false);
+                          }
+                        }
+                      } else if (value == 'delete') {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Delete Salary'),
+                            content: const Text('Are you sure you want to delete this salary record? This cannot be undone.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true && mounted) {
+                          setState(() => _isLoading = true);
+                          try {
+                            await _firebaseService.deleteSalary(widget.salary.id);
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Salary deleted successfully'), backgroundColor: Colors.green));
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isLoading = false);
+                          }
+                        }
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'recalculate', child: Text('Recalculate Salary')),
+                      const PopupMenuItem(value: 'delete', child: Text('Delete Salary', style: TextStyle(color: Colors.red))),
+                    ],
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
               ],
             ),
             const SizedBox(height: 8),
