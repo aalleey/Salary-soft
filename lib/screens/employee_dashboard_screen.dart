@@ -149,9 +149,9 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.deepPurple.shade800,
-            Colors.purple.shade600,
-            Colors.pink.shade400,
+            const Color(0xFF2E0249),
+            Colors.deepPurple.shade700,
+            const Color(0xFFF806CC),
           ],
         ),
       ),
@@ -203,9 +203,9 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.deepPurple.shade800,
-                Colors.purple.shade600,
-                Colors.pink.shade400,
+                const Color(0xFF2E0249),
+                Colors.deepPurple.shade700,
+                const Color(0xFFF806CC),
               ],
             ),
           ),
@@ -345,18 +345,33 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(12),
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: TabBar(
             controller: _tabController,
-            indicator: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                colors: [Colors.deepPurple, Colors.purple],
-              ),
-            ),
             indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
+            indicator: BoxDecoration(
+              borderRadius: BorderRadius.circular(25),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2E0249), Color(0xFFF806CC)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.deepPurple.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             labelColor: Colors.white,
             unselectedLabelColor: isDark ? Colors.white60 : Colors.black54,
             tabs: const [
@@ -431,18 +446,9 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
           child: Opacity(opacity: value, child: child),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: gradient.first.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
+      child: GlassCard(
+        padding: EdgeInsets.zero,
+        borderRadius: 20,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Theme(
@@ -693,26 +699,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
           child: Opacity(opacity: value, child: child),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.grey.shade900 : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: hasIssues
-                ? Colors.orange.withValues(alpha: 0.3)
-                : Colors.green.withValues(alpha: 0.3),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

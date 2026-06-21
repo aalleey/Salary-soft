@@ -594,20 +594,10 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     final maxY = history.reduce(max);
 
-    return Container(
-      height: 220,
+    return GlassCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+      child: SizedBox(
+        height: 172,
       child: LineChart(
         LineChartData(
           gridData: FlGridData(show: false),
@@ -673,246 +663,11 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
       ),
+      ),
     );
   }
 
-  /*
-  Widget _buildPremiumStatCard(
-    String title,
-    String value,
-    IconData icon,
-    List<Color> colors,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: colors.last.withValues(alpha: 0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -15,
-            bottom: -15,
-            child: Icon(icon, size: 90, color: Colors.white.withValues(alpha: 0.15)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 22),
-                ),
-                  children: [
-                    if (title.contains('Staff') || title.contains('Absents') || title.contains('Advances'))
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 0, end: double.tryParse(value) ?? 0),
-                        duration: const Duration(seconds: 2),
-                        curve: Curves.easeOutExpo,
-                        builder: (context, val, _) {
-                          return Text(
-                            val.toInt().toString(),
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          );
-                        },
-                      )
-                    else if (title.contains('Paid Salary'))
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(
-                          begin: 0,
-                          end: double.tryParse(value.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0,
-                        ),
-                        duration: const Duration(seconds: 2),
-                        curve: Curves.easeOutExpo,
-                        builder: (context, val, _) {
-                          // Determine if we should use K or just normal formatting based on magnitude
-                          return Text(
-                            'Rs ${NumberFormat.compact().format(val)}',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          );
-                        },
-                      )
-                    else
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    const SizedBox(height: 6),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-*/
 
-  Widget _buildPremiumStatCard(
-    String title,
-    String value,
-    IconData icon,
-    List<Color> colors,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: colors.last.withValues(alpha: 0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -15,
-            bottom: -15,
-            child: Icon(icon, size: 90, color: Colors.white.withValues(alpha: 0.15)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 22),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (title.contains('Staff') ||
-                        title.contains('Absents') ||
-                        title.contains('Advances'))
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(
-                          begin: 0,
-                          end: double.tryParse(value) ?? 0,
-                        ),
-                        duration: const Duration(seconds: 2),
-                        curve: Curves.easeOutExpo,
-                        builder: (context, val, _) {
-                          return Text(
-                            val.toInt().toString(),
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          );
-                        },
-                      )
-                    else if (title.contains('Paid Salary'))
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(
-                          begin: 0,
-                          end:
-                              double.tryParse(
-                                value.replaceAll(RegExp(r'[^0-9.]'), ''),
-                              ) ??
-                              0,
-                        ),
-                        duration: const Duration(seconds: 2),
-                        curve: Curves.easeOutExpo,
-                        builder: (context, val, _) {
-                          return Text(
-                            'Rs ${NumberFormat.compact().format(val)}',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          );
-                        },
-                      )
-                    else
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    const SizedBox(height: 6),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildQuickActionFAB() {
     return FloatingActionButton(
@@ -1000,6 +755,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildQuickActionsGrid(String? userCampus) {
     final isSuperAdmin = userCampus == null || userCampus.isEmpty;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     final List<Widget> actions = [
       if (isSuperAdmin) ...[
@@ -1024,56 +780,61 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         ),
       ],
-      _buildGlassyActionCard(
-        'Staff',
-        'Directory',
-        Icons.group_add_rounded,
-        Colors.indigo,
-        () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const StaffListScreen()),
+      if (authProvider.hasPermission('view_staff'))
+        _buildGlassyActionCard(
+          'Staff',
+          'Directory',
+          Icons.group_add_rounded,
+          Colors.indigo,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StaffListScreen()),
+          ),
         ),
-      ),
-      _buildGlassyActionCard(
-        'Attendance',
-        'Mark Today',
-        Icons.calendar_month_rounded,
-        Colors.teal,
-        () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AttendanceScreen()),
+      if (authProvider.hasPermission('add_attendance') || authProvider.hasPermission('edit_attendance'))
+        _buildGlassyActionCard(
+          'Attendance',
+          'Mark Today',
+          Icons.calendar_month_rounded,
+          Colors.teal,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AttendanceScreen()),
+          ),
         ),
-      ),
-      _buildGlassyActionCard(
-        'Report',
-        'View Attendance',
-        Icons.fact_check_rounded,
-        Colors.cyan,
-        () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AttendanceReportScreen()),
+      if (authProvider.hasPermission('export_reports') || authProvider.hasPermission('view_salary_reports'))
+        _buildGlassyActionCard(
+          'Report',
+          'View Attendance',
+          Icons.fact_check_rounded,
+          Colors.cyan,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AttendanceReportScreen()),
+          ),
         ),
-      ),
-      _buildGlassyActionCard(
-        'Paid Salary',
-        'Calculate & Pay',
-        Icons.payments_rounded,
-        Colors.pink,
-        () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const SalaryPaymentDashboardScreen()),
+      if (authProvider.hasPermission('calculate_salary'))
+        _buildGlassyActionCard(
+          'Paid Salary',
+          'Calculate & Pay',
+          Icons.payments_rounded,
+          Colors.pink,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SalaryPaymentDashboardScreen()),
+          ),
         ),
-      ),
-      _buildGlassyActionCard(
-        'Advances',
-        'Manage Loans',
-        Icons.card_giftcard_rounded,
-        Colors.deepOrange,
-        () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AdvanceScreen()),
+      if (authProvider.hasPermission('manage_advances'))
+        _buildGlassyActionCard(
+          'Advances',
+          'Manage Loans',
+          Icons.card_giftcard_rounded,
+          Colors.deepOrange,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AdvanceScreen()),
+          ),
         ),
-      ),
     ];
 
     return Wrap(
@@ -1100,22 +861,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        child: Container(
+        child: GlassCard(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-            ),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

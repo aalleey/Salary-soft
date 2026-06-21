@@ -5,6 +5,7 @@ import '../services/firebase_service.dart';
 import '../providers/auth_provider.dart';
 import 'add_edit_staff_screen.dart';
 import 'deleted_staff_screen.dart';
+import 'staff_profile_screen.dart';
 
 class StaffListScreen extends StatefulWidget {
   const StaffListScreen({super.key});
@@ -151,42 +152,44 @@ class _StaffListScreenState extends State<StaffListScreen> {
               ),
               actions: [
                 // Deleted Staff Button
-                IconButton(
-                  icon: const Icon(
-                    Icons.restore_from_trash,
-                    color: Colors.white,
+                if (authProvider.hasPermission('view_staff'))
+                  IconButton(
+                    icon: const Icon(
+                      Icons.restore_from_trash,
+                      color: Colors.white,
+                    ),
+                    tooltip: 'View Deleted Staff',
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DeletedStaffScreen(),
+                        ),
+                      );
+                      if (result == true) {
+                        _loadStaff(isRefresh: true);
+                      }
+                    },
                   ),
-                  tooltip: 'View Deleted Staff',
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const DeletedStaffScreen(),
-                      ),
-                    );
-                    if (result == true) {
-                      _loadStaff(isRefresh: true);
-                    }
-                  },
-                ),
                 // Add Staff Button
-                IconButton(
-                  icon: const Icon(
-                    Icons.add_circle_outline,
-                    color: Colors.white,
+                if (authProvider.hasPermission('add_staff'))
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.white,
+                    ),
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddEditStaffScreen(),
+                        ),
+                      );
+                      if (result == true) {
+                        _loadStaff(isRefresh: true);
+                      }
+                    },
                   ),
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AddEditStaffScreen(),
-                      ),
-                    );
-                    if (result == true) {
-                      _loadStaff(isRefresh: true);
-                    }
-                  },
-                ),
               ],
             ),
 
@@ -284,24 +287,34 @@ class _StaffListScreenState extends State<StaffListScreen> {
   }
 
   Widget _buildStaffCard(Staff staff) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => StaffProfileScreen(staff: staff)),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: staff.isActive
+                ? Colors.transparent
+                : Colors.red.withValues(alpha: 0.2),
           ),
-        ],
-        border: Border.all(
-          color: staff.isActive
-              ? Colors.transparent
-              : Colors.red.withValues(alpha: 0.2),
         ),
-      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Column(
@@ -439,43 +452,46 @@ class _StaffListScreenState extends State<StaffListScreen> {
                         style: TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
-                      PopupMenuButton(
-                        padding: EdgeInsets.zero,
-                        icon: const Icon(Icons.more_horiz),
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined, size: 20),
-                                SizedBox(width: 12),
-                                Text('Edit Profile'),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.delete_outline,
-                                  size: 20,
-                                  color: Colors.red,
+                      if (authProvider.hasPermission('edit_staff') || authProvider.hasPermission('delete_staff'))
+                        PopupMenuButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.more_horiz),
+                          itemBuilder: (context) => [
+                            if (authProvider.hasPermission('edit_staff'))
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit_outlined, size: 20),
+                                    SizedBox(width: 12),
+                                    Text('Edit Profile'),
+                                  ],
                                 ),
-                                SizedBox(width: 12),
-                                Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
+                              ),
+                            if (authProvider.hasPermission('delete_staff'))
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.delete_outline,
+                                      size: 20,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          if (value == 'edit') _editStaff(staff);
-                          if (value == 'delete') _deleteStaff(staff);
-                        },
-                      ),
+                              ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'edit') _editStaff(staff);
+                            if (value == 'delete') _deleteStaff(staff);
+                          },
+                        ),
                     ],
                   ),
                 ],
@@ -484,8 +500,9 @@ class _StaffListScreenState extends State<StaffListScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _editStaff(Staff staff) async {
     final result = await Navigator.push(

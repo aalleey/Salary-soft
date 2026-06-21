@@ -177,16 +177,7 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Salary Payments'),
-        actions: [
-           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Recalculate All',
-            onPressed: _handleRecalculate,
-           )
-        ]
-      ),
+
       body: StreamBuilder<List<Salary>>(
         stream: _firebaseService.getSalariesStream(
           month: _selectedMonth,
@@ -211,6 +202,66 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
+              SliverAppBar(
+                expandedHeight: 140.0,
+                floating: true,
+                pinned: true,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                flexibleSpace: ClipPath(
+                  clipper: _PaymentHeaderClipper(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF2E0249),
+                          Colors.deepPurple.shade700,
+                          const Color(0xFFF806CC),
+                        ],
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          right: -30,
+                          top: -30,
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 20, bottom: 20, right: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Salary Payments',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 28,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                                  tooltip: 'Recalculate All',
+                                  onPressed: _handleRecalculate,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -467,4 +518,29 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
       ),
     );
   }
+}
+
+class _PaymentHeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 20);
+    path.quadraticBezierTo(
+      size.width / 4,
+      size.height,
+      size.width / 2,
+      size.height - 20,
+    );
+    path.quadraticBezierTo(
+      size.width * 3 / 4,
+      size.height - 40,
+      size.width,
+      size.height - 10,
+    );
+    path.lineTo(size.width, 0);
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

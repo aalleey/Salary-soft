@@ -3,13 +3,20 @@ class User {
   final String username;
   final String role;
   final List<String> assignedCampuses;
+  final Map<String, bool> permissions;
 
   User({
     required this.id,
     required this.username,
     required this.role,
     required this.assignedCampuses,
+    this.permissions = const {},
   });
+
+  bool hasPermission(String permissionName) {
+    if (role == 'super_admin') return true;
+    return permissions[permissionName] ?? false;
+  }
 
   factory User.fromFirestore(Map<String, dynamic> data, String documentId) {
     List<String> campuses = [];
@@ -22,11 +29,17 @@ class User {
       }
     }
 
+    Map<String, bool> perms = {};
+    if (data['permissions'] != null) {
+      perms = Map<String, bool>.from(data['permissions']);
+    }
+
     return User(
       id: documentId,
       username: data['username'] ?? '',
       role: data['role'] ?? 'admin',
       assignedCampuses: campuses,
+      permissions: perms,
     );
   }
 
@@ -34,7 +47,8 @@ class User {
     return {
       'username': username, 
       'role': role, 
-      'assigned_campuses': assignedCampuses
+      'assigned_campuses': assignedCampuses,
+      'permissions': permissions,
     };
   }
 
@@ -44,7 +58,8 @@ class User {
       'id': id, 
       'username': username, 
       'role': role, 
-      'assignedCampuses': assignedCampuses
+      'assignedCampuses': assignedCampuses,
+      'permissions': permissions,
     };
   }
 
@@ -59,11 +74,17 @@ class User {
       }
     }
 
+    Map<String, bool> perms = {};
+    if (json['permissions'] != null) {
+      perms = Map<String, bool>.from(json['permissions']);
+    }
+
     return User(
       id: json['id'] ?? '',
       username: json['username'] ?? '',
       role: json['role'] ?? 'admin',
       assignedCampuses: campuses,
+      permissions: perms,
     );
   }
 }

@@ -1064,6 +1064,7 @@ class FirebaseService {
     required String password,
     required String role,
     List<String> assignedCampuses = const [],
+    Map<String, bool> permissions = const {},
   }) async {
     // Generate a random document ID for the user
     final docRef = _firestore.collection('users').doc();
@@ -1077,6 +1078,7 @@ class FirebaseService {
         'password': password,
         'role': role,
         'assigned_campuses': assignedCampuses,
+        'permissions': permissions,
         'created_at': FieldValue.serverTimestamp(),
       });
 
@@ -1117,6 +1119,7 @@ class FirebaseService {
     String? password,
     required String role,
     List<String> assignedCampuses = const [],
+    Map<String, bool> permissions = const {},
   }) async {
     try {
       final updateData = <String, dynamic>{
@@ -1124,6 +1127,7 @@ class FirebaseService {
         'email': email,
         'role': role,
         'assigned_campuses': assignedCampuses,
+        'permissions': permissions,
       };
 
       // Only update password if provided

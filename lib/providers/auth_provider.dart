@@ -52,6 +52,10 @@ class AuthProvider with ChangeNotifier {
     return roleFromString(user.role);
   }
 
+  bool hasPermission(String permissionName) {
+    return currentUser?.hasPermission(permissionName) ?? false;
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // Auth Actions
   // ──────────────────────────────────────────────────────────────────────────

@@ -34,7 +34,11 @@ class _AdvanceScreenState extends State<AdvanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF5F7FA),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
@@ -42,20 +46,19 @@ class _AdvanceScreenState extends State<AdvanceScreen>
               expandedHeight: 140.0,
               floating: true,
               pinned: true,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 60),
-                title: const Text(
-                  'Advances',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-                ),
-                background: Container(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              flexibleSpace: ClipPath(
+                clipper: _HeaderClipper(),
+                child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
                         Colors.orange.shade800,
-                        Colors.deepOrange.shade500,
+                        Colors.deepOrange.shade600,
+                        Colors.red.shade500,
                       ],
                     ),
                   ),
@@ -77,29 +80,69 @@ class _AdvanceScreenState extends State<AdvanceScreen>
                           backgroundColor: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
+                      Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 20, bottom: 60),
+                          child: const Text(
+                            'Advances',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 28,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(48),
+                preferredSize: const Size.fromHeight(56),
                 child: Container(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: TabBar(
                     controller: _tabController,
-                    indicatorColor: Colors.white,
-                    indicatorWeight: 4,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                      gradient: LinearGradient(
+                        colors: [Colors.orange.shade700, Colors.deepOrange.shade500],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.orange.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                     labelStyle: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 15,
                     ),
                     unselectedLabelStyle: const TextStyle(
-                      fontWeight: FontWeight.normal,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
                     ),
                     labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white70,
+                    unselectedLabelColor: isDark ? Colors.white60 : Colors.grey.shade600,
+                    dividerColor: Colors.transparent,
                     tabs: const [
-                      Tab(text: 'All Advances'),
+                      Tab(text: 'History'),
                       Tab(text: 'Give Advance'),
                     ],
                   ),
@@ -123,6 +166,31 @@ class _AdvanceScreenState extends State<AdvanceScreen>
       ),
     );
   }
+}
+
+class _HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 20);
+    path.quadraticBezierTo(
+      size.width / 4,
+      size.height,
+      size.width / 2,
+      size.height - 20,
+    );
+    path.quadraticBezierTo(
+      size.width * 3 / 4,
+      size.height - 40,
+      size.width,
+      size.height - 10,
+    );
+    path.lineTo(size.width, 0);
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 // Advance List Tab
@@ -166,7 +234,6 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
     'December',
   ];
 
-  // Month names for display (without 'All Months')
   final List<String> _monthNamesDisplay = [
     'January',
     'February',
@@ -208,16 +275,19 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
     setState(() => _isLoadingStaff = true);
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final user = authProvider.currentUser;
       final staff = await widget.firebaseService.getAllStaff(
         campus: authProvider.activeCampus,
       );
-      setState(() {
-        _staffList = staff;
-        _isLoadingStaff = false;
-      });
+      if (mounted) {
+        setState(() {
+          _staffList = staff;
+          _isLoadingStaff = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoadingStaff = false);
+      if (mounted) {
+        setState(() => _isLoadingStaff = false);
+      }
     }
   }
 
@@ -240,16 +310,20 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
         limit: 20,
       );
 
-      setState(() {
-        _advances = advances;
-        _lastDocument = lastDoc;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _advances = advances;
+          _lastDocument = lastDoc;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -267,16 +341,20 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
         limit: 20,
       );
 
-      setState(() {
-        _advances.addAll(advances);
-        _lastDocument = lastDoc;
-        _isFetchingMore = false;
-      });
+      if (mounted) {
+        setState(() {
+          _advances.addAll(advances);
+          _lastDocument = lastDoc;
+          _isFetchingMore = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isFetchingMore = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isFetchingMore = false;
+        });
+      }
     }
   }
 
@@ -297,6 +375,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Advance'),
         content: Text(
           'Are you sure you want to delete this advance of Rs ${advance.advanceAmount.toStringAsFixed(0)}?',
@@ -306,9 +385,9 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -324,6 +403,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
             const SnackBar(
               content: Text('Advance deleted and salary updated.'),
               backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
             ),
           );
           _loadAdvances(isRefresh: true);
@@ -334,6 +414,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
             SnackBar(
               content: Text('Error: ${e.toString()}'),
               backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -343,21 +424,24 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: [
-        // Filter Section with reduced padding
+        // Filter Section
         Container(
-          margin: const EdgeInsets.only(
-            left: 12,
-            right: 12,
-            top: 12,
-            bottom: 8,
-          ),
-          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Theme.of(context).dividerColor),
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,23 +449,29 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.filter_list,
-                    color: Colors.orange.shade700,
-                    size: 18,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.filter_list,
+                      color: Colors.orange.shade700,
+                      size: 20,
+                    ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Filters',
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Filter Records',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               _isLoadingStaff
                   ? const Center(
                       child: Padding(
@@ -396,23 +486,15 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                   : DropdownButtonFormField<Staff>(
                       initialValue: _selectedStaff,
                       decoration: InputDecoration(
-                        labelText: 'Staff',
-                        prefixIcon: const Icon(
-                          Icons.person_outline,
-                          color: Colors.orange,
-                          size: 20,
-                        ),
+                        labelText: 'Staff Member',
+                        prefixIcon: const Icon(Icons.person_outline, color: Colors.orange),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).cardColor,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        isDense: true,
+                        fillColor: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       isExpanded: true,
                       items: [
@@ -430,10 +512,9 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                           ),
                         ),
                       ],
-                      onChanged: (value) =>
-                          setState(() => _selectedStaff = value),
+                      onChanged: (value) => setState(() => _selectedStaff = value),
                     ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -441,22 +522,14 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                       initialValue: _selectedMonth,
                       decoration: InputDecoration(
                         labelText: 'Month',
-                        prefixIcon: const Icon(
-                          Icons.calendar_month,
-                          color: Colors.orange,
-                          size: 20,
-                        ),
+                        prefixIcon: const Icon(Icons.calendar_month, color: Colors.orange),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).cardColor,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        isDense: true,
+                        fillColor: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       items: List.generate(
                         13,
@@ -464,36 +537,27 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                           value: index == 0 ? null : index,
                           child: Text(
                             _monthNames[index],
-                            style: const TextStyle(fontSize: 13),
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ),
                       ),
-                      onChanged: (value) =>
-                          setState(() => _selectedMonth = value),
+                      onChanged: (value) => setState(() => _selectedMonth = value),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<int>(
                       initialValue: _selectedYear,
                       decoration: InputDecoration(
                         labelText: 'Year',
-                        prefixIcon: const Icon(
-                          Icons.event_note,
-                          color: Colors.orange,
-                          size: 20,
-                        ),
+                        prefixIcon: const Icon(Icons.event_note, color: Colors.orange),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Theme.of(context).cardColor,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        isDense: true,
+                        fillColor: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       items: [
                         const DropdownMenuItem<int>(
@@ -508,51 +572,40 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                           );
                         }),
                       ],
-                      onChanged: (value) =>
-                          setState(() => _selectedYear = value),
+                      onChanged: (value) => setState(() => _selectedYear = value),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _clearFilters,
-                      icon: const Icon(Icons.clear, size: 16),
-                      label: const Text(
-                        'Clear',
-                        style: TextStyle(fontSize: 13),
-                      ),
+                      icon: const Icon(Icons.clear, size: 18),
+                      label: const Text('Clear'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onSurface,
-                        side: BorderSide(color: Theme.of(context).dividerColor),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(
                       onPressed: _applyFilters,
-                      icon: const Icon(Icons.search, size: 16),
-                      label: const Text(
-                        'Apply',
-                        style: TextStyle(fontSize: 13),
-                      ),
+                      icon: const Icon(Icons.search, size: 18),
+                      label: const Text('Apply Filters'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange.shade600,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 2,
                       ),
@@ -567,38 +620,34 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
         // List Section
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: Colors.orange))
               : _error != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 60,
-                        color: Colors.red.shade300,
-                      ),
+                      Icon(Icons.error_outline, size: 60, color: Colors.red.shade300),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'Error loading advances',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: Text(
                           _error!,
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                          style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600),
                           textAlign: TextAlign.center,
                         ),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () => _loadAdvances(isRefresh: true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: const StadiumBorder(),
+                        ),
                         child: const Text('Retry'),
                       ),
                     ],
@@ -609,10 +658,17 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 80,
-                        color: Colors.grey.shade300,
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: 64,
+                          color: Colors.orange.shade300,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -620,9 +676,7 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          color: isDark ? Colors.white : Colors.grey.shade800,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -635,141 +689,164 @@ class _AdvanceListTabState extends State<AdvanceListTab> {
                 )
               : RefreshIndicator(
                   onRefresh: () => _loadAdvances(isRefresh: true),
+                  color: Colors.orange,
                   child: ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    physics: const BouncingScrollPhysics(),
                     itemCount: _advances.length + (_isFetchingMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == _advances.length) {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(color: Colors.orange),
                           ),
                         );
                       }
                       final advance = _advances[index];
-                      return Container(
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
+                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Theme.of(context).dividerColor,
-                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(20),
-                          leading: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Icon(
-                              Icons.account_balance_wallet,
-                              color: Colors.orange.shade700,
-                              size: 28,
-                            ),
-                          ),
-                          title: Text(
-                            advance.staffName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    size: 14,
-                                    color: Colors.white60,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Given: ${DateFormat('MMM dd, yyyy').format(DateTime.parse(advance.advanceDate))}',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 13,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        Icons.account_balance_wallet,
+                                        color: Colors.orange.shade700,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            advance.staffName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.calendar_today, size: 12, color: Colors.grey.shade500),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                DateFormat('MMM dd, yyyy').format(DateTime.parse(advance.advanceDate)),
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade500,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          'Rs ${advance.advanceAmount.toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.orange.shade700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'For ${_monthNamesDisplay[advance.advanceMonth - 1]} ${advance.advanceYear}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade800,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                if (advance.description != null && advance.description!.isNotEmpty) ...[
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Icon(Icons.notes, size: 16, color: Colors.grey.shade500),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            advance.description!,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark ? Colors.white70 : Colors.grey.shade700,
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.trending_down,
-                                    size: 14,
-                                    color: Colors.orange.shade400,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Deduct from: ${_monthNamesDisplay[advance.advanceMonth - 1]} ${advance.advanceYear}',
-                                    style: TextStyle(
-                                      color: Colors.orange.shade700,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                                const SizedBox(height: 12),
+                                const Divider(height: 1),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: () => _deleteAdvance(advance),
+                                      icon: const Icon(Icons.delete_outline, size: 18),
+                                      label: const Text('Remove'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              if (advance.description != null &&
-                                  advance.description!.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  advance.description!,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontStyle: FontStyle.italic,
-                                    color: Colors.white60,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                                  ],
                                 ),
                               ],
-                            ],
-                          ),
-                          trailing: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  'Rs ${advance.advanceAmount.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade700,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              InkWell(
-                                onTap: () => _deleteAdvance(advance),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  padding: const EdgeInsets.all(5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.red.shade400,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       );
@@ -843,16 +920,19 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final user = authProvider.currentUser;
       final staff = await widget.firebaseService.getAllStaff(
-        campus: Provider.of<AuthProvider>(context, listen: false).activeCampus,
+        campus: authProvider.activeCampus,
       );
-      setState(() {
-        _staffList = staff;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _staffList = staff;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -895,8 +975,9 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Advance recorded and salary updated.'),
+            content: Text('Advance recorded successfully.'),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
         );
         _formKey.currentState!.reset();
@@ -916,6 +997,7 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -928,299 +1010,274 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: Colors.orange));
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        color: Theme.of(context).cardColor,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.add_card,
-                        color: Colors.orange.shade700,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      'New Advance',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                DropdownButtonFormField<Staff>(
-                  initialValue: _selectedStaff,
-                  decoration: InputDecoration(
-                    labelText: 'Select Staff *',
-                    prefixIcon: const Icon(
-                      Icons.person_outline,
-                      color: Colors.orange,
-                    ),
-                    border: OutlineInputBorder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
                     ),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    contentPadding: const EdgeInsets.all(16),
+                    child: Icon(
+                      Icons.add_card,
+                      color: Colors.orange.shade700,
+                      size: 28,
+                    ),
                   ),
-                  isExpanded: true,
-                  items: _staffList
-                      .map(
-                        (staff) => DropdownMenuItem(
-                          value: staff,
-                          child: Text(
-                            '${staff.name} (${staff.campus})',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) => setState(() => _selectedStaff = value),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _amountController,
-                  decoration: InputDecoration(
-                    labelText: 'Advance Amount *',
-                    prefixIcon: const Icon(
-                      Icons.attach_money,
-                      color: Colors.orange,
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Record Advance',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                    prefixText: 'Rs ',
-                    hintText: '0.00',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    contentPadding: const EdgeInsets.all(16),
                   ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter amount';
-                    }
-                    final amount = double.tryParse(value);
-                    if (amount == null || amount <= 0) {
-                      return 'Please enter a valid amount';
-                    }
-                    return null;
-                  },
+                ],
+              ),
+              const SizedBox(height: 32),
+              
+              // Staff Dropdown
+              DropdownButtonFormField<Staff>(
+                initialValue: _selectedStaff,
+                decoration: _buildInputDecoration(
+                  label: 'Select Staff *',
+                  icon: Icons.person_outline,
+                  isDark: isDark,
                 ),
-                const SizedBox(height: 20),
-                InkWell(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                      builder: (context, child) => Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: Colors.orange.shade700,
-                          ),
-                        ),
-                        child: child!,
-                      ),
-                    );
-                    if (date != null) setState(() => _selectedDate = date);
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Date',
-                      prefixIcon: const Icon(
-                        Icons.calendar_today_outlined,
-                        color: Colors.orange,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
+                isExpanded: true,
+                items: _staffList.map((staff) {
+                  return DropdownMenuItem(
+                    value: staff,
                     child: Text(
-                      DateFormat('MMM dd, yyyy').format(_selectedDate),
-                      style: const TextStyle(fontSize: 16),
+                      '${staff.name} (${staff.campus})',
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  );
+                }).toList(),
+                onChanged: (value) => setState(() => _selectedStaff = value),
+                validator: (value) => value == null ? 'Please select a staff member' : null,
+              ),
+              const SizedBox(height: 20),
+
+              // Amount Field
+              TextFormField(
+                controller: _amountController,
+                decoration: _buildInputDecoration(
+                  label: 'Advance Amount *',
+                  icon: Icons.attach_money,
+                  prefixText: 'Rs ',
+                  hint: '0.00',
+                  isDark: isDark,
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return 'Please enter amount';
+                  final amount = double.tryParse(value);
+                  if (amount == null || amount <= 0) return 'Enter a valid amount';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Date Picker
+              InkWell(
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                    builder: (context, child) => Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(primary: Colors.orange.shade700),
+                      ),
+                      child: child!,
+                    ),
+                  );
+                  if (date != null) setState(() => _selectedDate = date);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: InputDecorator(
+                  decoration: _buildInputDecoration(
+                    label: 'Date',
+                    icon: Icons.calendar_today_outlined,
+                    isDark: isDark,
+                  ),
+                  child: Text(
+                    DateFormat('MMM dd, yyyy').format(_selectedDate),
+                    style: const TextStyle(fontSize: 16),
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Month/Year Selectors
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<int>(
-                        initialValue: _selectedMonth,
-                        decoration: InputDecoration(
-                          labelText: 'For Month *',
-                          prefixIcon: const Icon(
-                            Icons.calendar_month,
-                            color: Colors.orange,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(context).cardColor,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                        items: List.generate(12, (index) {
-                          final month = index + 1;
-                          return DropdownMenuItem(
-                            value: month,
-                            child: Text(_monthNames[index]),
-                          );
-                        }),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedMonth = value);
-                          }
-                        },
+              ),
+              const SizedBox(height: 20),
+
+              // Month/Year Selectors
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _selectedMonth,
+                      decoration: _buildInputDecoration(
+                        label: 'Deduct Month *',
+                        icon: Icons.calendar_month,
+                        isDark: isDark,
                       ),
+                      items: List.generate(12, (index) {
+                        return DropdownMenuItem(
+                          value: index + 1,
+                          child: Text(_monthNames[index]),
+                        );
+                      }),
+                      onChanged: (value) {
+                        if (value != null) setState(() => _selectedMonth = value);
+                      },
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<int>(
-                        initialValue: _selectedYear,
-                        decoration: InputDecoration(
-                          labelText: 'For Year *',
-                          prefixIcon: const Icon(
-                            Icons.event_note,
-                            color: Colors.orange,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: Colors.orange.shade50,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                        items: List.generate(3, (index) {
-                          final year = DateTime.now().year + index;
-                          return DropdownMenuItem(
-                            value: year,
-                            child: Text(year.toString()),
-                          );
-                        }),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _selectedYear = value);
-                          }
-                        },
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _selectedYear,
+                      decoration: _buildInputDecoration(
+                        label: 'Deduct Year *',
+                        icon: Icons.event_note,
+                        isDark: isDark,
                       ),
+                      items: List.generate(3, (index) {
+                        final year = DateTime.now().year + index;
+                        return DropdownMenuItem(
+                          value: year,
+                          child: Text(year.toString()),
+                        );
+                      }),
+                      onChanged: (value) {
+                        if (value != null) setState(() => _selectedYear = value);
+                      },
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Description Field
+              TextFormField(
+                controller: _descriptionController,
+                decoration: _buildInputDecoration(
+                  label: 'Description (Optional)',
+                  icon: Icons.notes,
+                  hint: 'Enter note or reason',
+                  isDark: isDark,
                 ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: 'Description (Optional)',
-                    prefixIcon: const Icon(Icons.notes, color: Colors.orange),
-                    hintText: 'Enter note or reason',
-                    border: OutlineInputBorder(
+                maxLines: 3,
+              ),
+              const SizedBox(height: 40),
+
+              // Submit Button
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitAdvance,
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
                     ),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    contentPadding: const EdgeInsets.all(16),
+                    elevation: 4,
+                    shadowColor: Colors.orange.withValues(alpha: 0.4),
                   ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 40),
-                SizedBox(
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submitAdvance,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      foregroundColor: Colors.white,
-                      shadowColor: Colors.transparent,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.orange.shade600, Colors.deepOrange.shade600],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
                       ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.orange.shade700,
-                            Colors.deepOrange.shade600,
-                          ],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orange.withValues(alpha: 0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                    child: Container(
+                      alignment: Alignment.center,
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_outline, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Confirm Advance',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
                                   ),
                                 ),
-                              )
-                            : const Text(
-                                'Give Advance',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                      ),
+                              ],
+                            ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    required String label,
+    required IconData icon,
+    required bool isDark,
+    String? hint,
+    String? prefixText,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixText: prefixText,
+      prefixIcon: Icon(icon, color: Colors.orange.shade600),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      filled: true,
+      fillColor: isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade50,
     );
   }
 }

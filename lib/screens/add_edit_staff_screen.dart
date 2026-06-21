@@ -18,9 +18,19 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
   final _nameController = TextEditingController();
   final _salaryController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _passwordController =
-      TextEditingController(); // Added password controller
-  // removed _campusController
+  final _passwordController = TextEditingController();
+  
+  // New Expanded Controllers
+  final _fatherNameController = TextEditingController();
+  final _cnicController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _designationController = TextEditingController();
+  final _joiningDateController = TextEditingController();
+  final _bankAccountController = TextEditingController();
+  final _emergencyContactController = TextEditingController();
+  final _notesController = TextEditingController();
+  String _salaryType = 'Monthly';
+
   String? _selectedCampus;
   List<Campus> _campuses = [];
   bool _isLoadingCampuses = true;
@@ -39,6 +49,16 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
       _selectedCampus = widget.staff!.campus;
       _isActive = widget.staff!.isActive;
       _passwordController.text = widget.staff!.password ?? '';
+      
+      _fatherNameController.text = widget.staff!.fatherHusbandName ?? '';
+      _cnicController.text = widget.staff!.cnic ?? '';
+      _addressController.text = widget.staff!.address ?? '';
+      _designationController.text = widget.staff!.designation ?? '';
+      _joiningDateController.text = widget.staff!.joiningDate ?? '';
+      _bankAccountController.text = widget.staff!.bankAccount ?? '';
+      _emergencyContactController.text = widget.staff!.emergencyContact ?? '';
+      _notesController.text = widget.staff!.notes ?? '';
+      _salaryType = widget.staff!.salaryType;
     }
     _loadCampuses();
   }
@@ -49,7 +69,14 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
     _salaryController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
-    // _campusController removed
+    _fatherNameController.dispose();
+    _cnicController.dispose();
+    _addressController.dispose();
+    _designationController.dispose();
+    _joiningDateController.dispose();
+    _bankAccountController.dispose();
+    _emergencyContactController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -90,6 +117,15 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
         password: _passwordController.text.trim().isNotEmpty
             ? _passwordController.text.trim()
             : null,
+        fatherHusbandName: _fatherNameController.text.trim(),
+        cnic: _cnicController.text.trim(),
+        address: _addressController.text.trim(),
+        designation: _designationController.text.trim(),
+        joiningDate: _joiningDateController.text.trim(),
+        salaryType: _salaryType,
+        bankAccount: _bankAccountController.text.trim(),
+        emergencyContact: _emergencyContactController.text.trim(),
+        notes: _notesController.text.trim(),
       );
 
       if (_isEditing) {
@@ -241,6 +277,31 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
+                      controller: _fatherNameController,
+                      decoration: InputDecoration(
+                        labelText: 'Father / Husband Name',
+                        prefixIcon: const Icon(Icons.family_restroom_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _cnicController,
+                      decoration: InputDecoration(
+                        labelText: 'CNIC',
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
                       controller: _phoneController,
                       decoration: InputDecoration(
                         labelText: 'Phone Number',
@@ -255,6 +316,19 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                           (value == null || value.trim().isEmpty)
                           ? 'Phone number is required'
                           : null,
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _addressController,
+                      decoration: InputDecoration(
+                        labelText: 'Home Address',
+                        prefixIcon: const Icon(Icons.home_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                      maxLines: 2,
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
@@ -282,9 +356,50 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextFormField(
+                      controller: _designationController,
+                      decoration: InputDecoration(
+                        labelText: 'Designation / Title',
+                        prefixIcon: const Icon(Icons.work_outline_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _joiningDateController,
+                      decoration: InputDecoration(
+                        labelText: 'Joining Date (e.g. 2026-06-21)',
+                        prefixIcon: const Icon(Icons.calendar_today_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      initialValue: _salaryType,
+                      decoration: InputDecoration(
+                        labelText: 'Salary Type',
+                        prefixIcon: const Icon(Icons.category_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+                        DropdownMenuItem(value: 'Lecture', child: Text('Lecture Based')),
+                      ],
+                      onChanged: (v) => setState(() => _salaryType = v!),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
                       controller: _salaryController,
                       decoration: InputDecoration(
-                        labelText: 'Monthly Salary',
+                        labelText: 'Basic Salary / Rate',
                         prefixIcon: const Icon(
                           Icons.account_balance_wallet_outlined,
                         ),
@@ -335,6 +450,77 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                                 ? 'Please select a campus'
                                 : null,
                           ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Additional Details Section
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ADDITIONAL DETAILS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _bankAccountController,
+                      decoration: InputDecoration(
+                        labelText: 'Bank Account Number / IBAN',
+                        prefixIcon: const Icon(Icons.account_balance_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _emergencyContactController,
+                      decoration: InputDecoration(
+                        labelText: 'Emergency Contact Info',
+                        prefixIcon: const Icon(Icons.health_and_safety_rounded),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _notesController,
+                      decoration: InputDecoration(
+                        labelText: 'Internal Notes',
+                        prefixIcon: const Icon(Icons.note_alt_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        filled: true,
+                      ),
+                      maxLines: 3,
+                    ),
                   ],
                 ),
               ),

@@ -26,6 +26,22 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
   bool _isLoadingCampuses = true;
   bool _obscurePassword = true;
 
+  final Map<String, bool> _permissions = {
+    'add_staff': false,
+    'edit_staff': false,
+    'delete_staff': false,
+    'view_staff': false,
+    'add_attendance': false,
+    'edit_attendance': false,
+    'delete_attendance': false,
+    'calculate_salary': false,
+    'generate_salary_slip': false,
+    'view_salary_reports': false,
+    'export_reports': false,
+    'manage_advances': false,
+    'manage_campuses': false,
+  };
+
   bool get isEditing => widget.user != null;
 
   /// Normalizes any Firestore role string to one of the dropdown values.
@@ -64,6 +80,15 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
         if (userCampus != null && userCampus.isNotEmpty) {
           _selectedCampuses = [userCampus];
         }
+      }
+
+      if (widget.user!['permissions'] != null) {
+        final Map<String, dynamic> perms = widget.user!['permissions'];
+        perms.forEach((key, value) {
+          if (_permissions.containsKey(key)) {
+            _permissions[key] = value == true;
+          }
+        });
       }
     }
   }
@@ -119,6 +144,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
               : null,
           role: _selectedRole,
           assignedCampuses: _selectedCampuses,
+          permissions: _permissions,
         );
       } else {
         await _firebaseService.addUser(
@@ -127,6 +153,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
           password: _passwordController.text,
           role: _selectedRole,
           assignedCampuses: _selectedCampuses,
+          permissions: _permissions,
         );
       }
 
@@ -431,6 +458,59 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Permissions Card (Only for admin)
+              if (_selectedRole == 'admin') ...[
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade900 : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(13),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Admin Permissions',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ..._permissions.keys.map((String key) {
+                        final formattedTitle = key
+                            .split('_')
+                            .map((word) =>
+                                word[0].toUpperCase() + word.substring(1))
+                            .join(' ');
+                        return CheckboxListTile(
+                          title: Text(formattedTitle),
+                          value: _permissions[key],
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _permissions[key] = value ?? false;
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Save Button
               SizedBox(
