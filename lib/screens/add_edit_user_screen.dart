@@ -118,7 +118,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
               ? _passwordController.text
               : null,
           role: _selectedRole,
-          assignedCampuses: _selectedRole == 'superUser' ? [] : _selectedCampuses,
+          assignedCampuses: _selectedCampuses,
         );
       } else {
         await _firebaseService.addUser(
@@ -126,7 +126,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
           role: _selectedRole,
-          assignedCampuses: _selectedRole == 'superUser' ? [] : _selectedCampuses,
+          assignedCampuses: _selectedCampuses,
         );
       }
 
@@ -359,24 +359,20 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                       onChanged: (value) {
                         setState(() {
                           _selectedRole = value!;
-                          if (value == 'superUser') {
-                            _selectedCampuses.clear();
-                          }
                         });
                       },
                     ),
                     const SizedBox(height: 16),
 
-                    // Campus Selector (only for admin)
-                    if (_selectedRole == 'admin') ...[
-                      _isLoadingCampuses
-                          ? const Center(child: CircularProgressIndicator())
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Assigned Campuses *',
-                                  style: TextStyle(
+                    // Campus Selector
+                    _isLoadingCampuses
+                        ? const Center(child: CircularProgressIndicator())
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedRole == 'admin' ? 'Assigned Campuses *' : 'Assigned Campuses (Leave empty for Master Admin)',
+                                style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -431,7 +427,6 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                           ],
                         ),
                       ),
-                    ],
                   ],
                 ),
               ),

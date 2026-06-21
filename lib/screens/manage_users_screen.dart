@@ -201,7 +201,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     final username = user['username'] ?? 'Unknown';
     final email = user['email'] ?? '';
     final role = user['role'] ?? 'admin';
-    final isSuperUser = role == 'superUser' || role == 'app_owner';
+    final isSuperUser = role == 'superUser' || role == 'app_owner' || role == 'super_admin' || role == 'super_user' || role == 'superuser';
     final assignedCampuses = user['assigned_campuses'] as List<dynamic>? ?? [];
     
     // Fallback for legacy

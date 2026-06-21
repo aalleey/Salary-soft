@@ -609,6 +609,83 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     }
   }
 
+  Future<void> _editAttendance(_StaffAttendanceData data) async {
+    final absentsController = TextEditingController(text: data.attendance.absents.toString());
+    final latesController = TextEditingController(text: data.attendance.lates.toString());
+    final halfLeavesController = TextEditingController(text: data.attendance.halfLeaves.toString());
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Attendance - ${data.staff.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: absentsController,
+              decoration: const InputDecoration(labelText: 'Full Day Absents'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: latesController,
+              decoration: const InputDecoration(labelText: 'Late Arrivals'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: halfLeavesController,
+              decoration: const InputDecoration(labelText: 'Half Leaves'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final absents = int.tryParse(absentsController.text) ?? 0;
+      final lates = int.tryParse(latesController.text) ?? 0;
+      final halfLeaves = int.tryParse(halfLeavesController.text) ?? 0;
+
+      final updatedAttendance = Attendance(
+        id: data.attendance.id,
+        staffId: data.staff.id,
+        staffName: data.staff.name,
+        month: _selectedMonth,
+        year: _selectedYear,
+        absents: absents,
+        lates: lates,
+        halfLeaves: halfLeaves,
+      );
+
+      try {
+        if (data.attendance.id.isNotEmpty) {
+          await _firebaseService.updateAttendance(data.attendance.id, updatedAttendance);
+        } else {
+          await _firebaseService.addAttendance(updatedAttendance);
+        }
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Attendance saved successfully'), backgroundColor: Colors.green),
+          );
+          _loadAttendance(); // Refresh list
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error saving attendance: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildStatBadge(String label, int value, Color color) {
     final hasValue = value > 0;
     return Container(

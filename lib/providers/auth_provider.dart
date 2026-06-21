@@ -37,9 +37,7 @@ class AuthProvider with ChangeNotifier {
   void _initializeActiveCampus() {
     final user = currentUser;
     if (user != null) {
-      if (userRole == UserRole.superUser) {
-        _activeCampus = null; // 'All Campuses' by default
-      } else if (userRole == UserRole.admin && user.assignedCampuses.isNotEmpty) {
+      if (user.assignedCampuses.isNotEmpty) {
         _activeCampus = user.assignedCampuses.first;
       } else {
         _activeCampus = null;

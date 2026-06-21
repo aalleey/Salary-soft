@@ -389,7 +389,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           color: Colors.black.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: PopupMenuButton<String>(
+                        child: PopupMenuButton<String?>(
                           initialValue: activeCampus,
                           onSelected: (campus) {
                             authProvider.setActiveCampus(campus);
@@ -426,12 +426,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                             ),
                           ),
                           itemBuilder: (BuildContext context) {
-                            return assignedCampuses.map<PopupMenuItem<String>>((String c) {
-                              return PopupMenuItem<String>(
+                            final items = <PopupMenuItem<String?>>[
+                              const PopupMenuItem<String?>(
+                                value: null,
+                                child: Text('All Campuses'),
+                              ),
+                            ];
+                            items.addAll(assignedCampuses.map((String c) {
+                              return PopupMenuItem<String?>(
                                 value: c,
                                 child: Text(c),
                               );
-                            }).toList();
+                            }));
+                            return items;
                           },
                         ),
                       )

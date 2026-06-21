@@ -353,14 +353,19 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final salary = filteredSalaries[index];
+                        final hasAdvance = salary.advanceAmount > 0;
+                        final isOverpaid = salary.paidAmount > salary.totalSalary;
+                        final hasSpecialStatus = hasAdvance || isOverpaid;
+                        final avatarColor = hasSpecialStatus ? Colors.purple : salary.statusColor;
+
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: GlassCard(
                             child: ListTile(
                               contentPadding: const EdgeInsets.all(16),
                               leading: CircleAvatar(
-                                backgroundColor: salary.statusColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person, color: salary.statusColor),
+                                backgroundColor: avatarColor.withValues(alpha: 0.2),
+                                child: Icon(Icons.person, color: avatarColor),
                               ),
                               title: Text(salary.staffName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                               subtitle: Padding(
@@ -371,6 +376,14 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
                                     Text('Net: ${salary.formattedTotalSalary}', style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 4),
                                     Text('Paid: Rs ${NumberFormat('#,##0').format(salary.paidAmount)}', style: const TextStyle(color: Colors.green, fontSize: 12)),
+                                    if (hasAdvance) ...[
+                                      const SizedBox(height: 4),
+                                      Text('Advance: Rs ${NumberFormat('#,##0').format(salary.advanceAmount)}', style: const TextStyle(color: Colors.purple, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                    if (isOverpaid) ...[
+                                      const SizedBox(height: 4),
+                                      Text('Overpaid: Rs ${NumberFormat('#,##0').format(salary.paidAmount - salary.totalSalary)}', style: const TextStyle(color: Colors.purple, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
                                   ],
                                 ),
                               ),

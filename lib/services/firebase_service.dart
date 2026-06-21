@@ -30,35 +30,39 @@ class FirebaseService {
     if (_currentAppUser == null) return query; // Fallback or unauthenticated
     
     final role = roleFromString(_currentAppUser!.role);
-    if (role.isSuperUser) {
-      if (requestedCampus != null && requestedCampus.isNotEmpty) {
-        return query.where('campus', isEqualTo: requestedCampus);
-      }
-      return query;
-    }
-    
-    // Admin role
     final campuses = _currentAppUser!.assignedCampuses;
-    if (campuses.isEmpty) {
-      // Force empty result by querying for an impossible campus
-      return query.where('campus', isEqualTo: '___NONE___'); 
-    }
-    
-    if (requestedCampus != null && requestedCampus.isNotEmpty) {
-      if (campuses.contains(requestedCampus)) {
-        return query.where('campus', isEqualTo: requestedCampus);
+
+    if (campuses.isNotEmpty) {
+      // Both Admins and Super Admins with assigned campuses are restricted to those campuses
+      if (requestedCampus != null && requestedCampus.isNotEmpty) {
+        if (campuses.contains(requestedCampus)) {
+          return query.where('campus', isEqualTo: requestedCampus);
+        } else {
+          return query.where('campus', isEqualTo: '___UNAUTHORIZED___');
+        }
+      }
+      return query.where('campus', whereIn: campuses);
+    } else {
+      // If no assigned campuses:
+      if (role.isSuperUser) {
+        // True Master Admin sees all campuses
+        if (requestedCampus != null && requestedCampus.isNotEmpty) {
+          return query.where('campus', isEqualTo: requestedCampus);
+        }
+        return query;
       } else {
-        return query.where('campus', isEqualTo: '___UNAUTHORIZED___');
+        // Normal Admin with no assigned campuses sees nothing
+        return query.where('campus', isEqualTo: '___NONE___'); 
       }
     }
-    
-    return query.where('campus', whereIn: campuses);
   }
 
   void _verifyCampusAccess(String? campus) {
     if (_currentAppUser == null) return; // Allow bypass for login/initialization
     final role = roleFromString(_currentAppUser!.role);
-    if (role.isSuperUser) return;
+    
+    // True Master Admin (no assigned campuses) can bypass
+    if (role.isSuperUser && _currentAppUser!.assignedCampuses.isEmpty) return;
     
     if (campus == null || campus.isEmpty) {
       throw Exception('Unauthorized: Campus is required for this operation.');
@@ -906,9 +910,12 @@ class FirebaseService {
 
       if (_currentAppUser != null) {
         final role = roleFromString(_currentAppUser!.role);
-        if (role.isAdmin) {
+        final assigned = _currentAppUser!.assignedCampuses;
+        
+        // Restrict if user is Admin OR if user is SuperAdmin but has assigned campuses
+        if (role.isAdmin || (role.isSuperUser && assigned.isNotEmpty)) {
           campuses = campuses
-              .where((c) => _currentAppUser!.assignedCampuses.contains(c.name))
+              .where((c) => assigned.contains(c.name))
               .toList();
         }
       }
@@ -927,6 +934,19 @@ class FirebaseService {
         'created_by': _currentAppUser?.id,
         'created_at': FieldValue.serverTimestamp(),
       });
+
+      // If a restricted Super Admin creates a campus, automatically assign it to them
+      if (_currentAppUser != null) {
+        final role = roleFromString(_currentAppUser!.role);
+        if (role.isSuperUser && _currentAppUser!.assignedCampuses.isNotEmpty) {
+          final updatedCampuses = List<String>.from(_currentAppUser!.assignedCampuses)..add(name);
+          await _firestore.collection('users').doc(_currentAppUser!.id).update({
+            'assigned_campuses': updatedCampuses,
+          });
+          _currentAppUser!.assignedCampuses.add(name);
+        }
+      }
+
       return docRef.id;
     } catch (e) {
       print('Error adding campus: $e');
@@ -986,11 +1006,43 @@ class FirebaseService {
       // Fetch without orderBy to avoid index requirements
       final snapshot = await _firestore.collection('users').get();
 
-      final users = snapshot.docs.map((doc) {
+      var users = snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
         return data;
       }).toList();
+
+      // Filter users for Campus-Level Super Admins
+      if (_currentAppUser != null) {
+        final assigned = _currentAppUser!.assignedCampuses;
+        
+        // If they are not a Master Admin (Master Admin has no assigned campuses)
+        if (assigned.isNotEmpty) {
+          users = users.where((u) {
+            // Include themselves
+            if (u['id'] == _currentAppUser!.id) return true;
+            
+            // Check if the target user has any intersecting campuses
+            final targetAssigned = u['assigned_campuses'] as List<dynamic>? ?? [];
+            final targetLegacy = u['campus'] as String?;
+            
+            final targetCampuses = <String>{};
+            if (targetAssigned.isNotEmpty) {
+              targetCampuses.addAll(targetAssigned.cast<String>());
+            }
+            if (targetLegacy != null && targetLegacy.isNotEmpty) {
+              targetCampuses.add(targetLegacy);
+            }
+            
+            // If target has no campuses, they are a Master Admin. 
+            // Usually, Campus Super Admins shouldn't see Master Admins.
+            if (targetCampuses.isEmpty) return false;
+            
+            // Return true if intersection is not empty
+            return targetCampuses.intersection(assigned.toSet()).isNotEmpty;
+          }).toList();
+        }
+      }
 
       // Sort locally by username
       users.sort(
