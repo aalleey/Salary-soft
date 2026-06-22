@@ -32,7 +32,7 @@ class Client {
   factory Client.fromJson(Map<String, dynamic> json) {
     return Client(
       id: json['_id'] ?? json['id'] ?? '',
-      instituteName: json['instituteName'] ?? '',
+      instituteName: json['instituteName'] ?? json['name'] ?? '',
       ownerName: json['ownerName'] ?? '',
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',

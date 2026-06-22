@@ -20,8 +20,9 @@ class SubscriptionService {
       final list = data.map((json) => Client.fromJson(json)).toList();
       list.sort((a, b) => a.instituteName.toLowerCase().compareTo(b.instituteName.toLowerCase()));
       return list;
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('Error getting clients: $e');
+      debugPrint(st.toString());
       return [];
     }
   }

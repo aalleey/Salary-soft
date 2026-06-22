@@ -425,7 +425,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                         ? const Center(child: LinearProgressIndicator())
                         : DropdownButtonFormField<String>(
                             initialValue:
-                                _campuses.any((c) => c.name == _selectedCampus)
+                                _campuses.any((c) => c.id == _selectedCampus)
                                 ? _selectedCampus
                                 : null,
                             decoration: InputDecoration(
@@ -439,7 +439,7 @@ class _AddEditStaffScreenState extends State<AddEditStaffScreen> {
                             items: _campuses
                                 .map(
                                   (c) => DropdownMenuItem(
-                                    value: c.name,
+                                    value: c.id,
                                     child: Text(c.name),
                                   ),
                                 )

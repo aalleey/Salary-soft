@@ -132,10 +132,9 @@ class ApiService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     } else {
-      if (body is Map && body.containsKey('message')) {
-        throw Exception(body['message']);
-      }
-      throw Exception('Request failed with status ${response.statusCode}');
+      final errorMsg = body is Map ? (body['message'] ?? 'Request failed with status: ${response.statusCode}') : 'Request failed with status: ${response.statusCode}';
+      final errorDetail = (body is Map && body['error'] != null) ? ' - ${body['error']}' : '';
+      throw Exception('$errorMsg$errorDetail');
     }
   }
 }

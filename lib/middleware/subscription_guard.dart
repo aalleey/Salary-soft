@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/subscription_provider.dart';
+import '../screens/login_screen.dart';
 
 class SubscriptionGuard extends StatelessWidget {
   final Widget child;
@@ -46,9 +47,38 @@ class SubscriptionGuard extends StatelessWidget {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () {
-                      // Navigate to payment/contact page
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Contact Administrator'),
+                          content: const Text(
+                              'Your account currently has no active subscription package. Please contact the Super Admin to assign a package to your account.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
                     },
-                    child: const Text('Renew Now'),
+                    child: const Text('Renew / Contact Admin'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: () {
+                      final nav = Navigator.of(context);
+                      subProvider.authProvider.logout().then((_) {
+                        nav.pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      });
+                    },
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
                   ),
                 ],
               ),
