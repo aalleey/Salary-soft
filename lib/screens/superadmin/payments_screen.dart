@@ -39,11 +39,16 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'completed': return Colors.green;
-      case 'pending': return Colors.orange;
-      case 'failed': return Colors.red;
-      case 'refunded': return Colors.grey;
-      default: return Colors.blue;
+      case 'completed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'failed':
+        return Colors.red;
+      case 'refunded':
+        return Colors.grey;
+      default:
+        return Colors.blue;
     }
   }
 
@@ -53,10 +58,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       appBar: AppBar(
         title: const Text('Payments'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadPayments,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadPayments),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -72,43 +74,55 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _payments.isEmpty
-              ? const Center(child: Text('No payments found.'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _payments.length,
-                  itemBuilder: (context, index) {
-                    final payment = _payments[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: _getStatusColor(payment.status).withValues(alpha: 0.2),
-                          child: Icon(Icons.attach_money, color: _getStatusColor(payment.status)),
+          ? const Center(child: Text('No payments found.'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _payments.length,
+              itemBuilder: (context, index) {
+                final payment = _payments[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getStatusColor(
+                        payment.status,
+                      ).withValues(alpha: 0.2),
+                      child: Icon(
+                        Icons.attach_money,
+                        color: _getStatusColor(payment.status),
+                      ),
+                    ),
+                    title: Text(
+                      payment.amount.toStringAsFixed(2),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Client ID: ${payment.clientId}'),
+                        Text(
+                          'Date: ${DateFormat('MMM dd, yyyy').format(payment.paymentDate)}',
                         ),
-                        title: Text(
-                          payment.amount.toStringAsFixed(2),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Client ID: ${payment.clientId}'),
-                            Text('Date: ${DateFormat('MMM dd, yyyy').format(payment.paymentDate)}'),
-                            Text('Method: ${payment.paymentMethod}'),
-                          ],
-                        ),
-                        trailing: Chip(
-                          label: Text(
-                            payment.status.toUpperCase(),
-                            style: const TextStyle(fontSize: 10, color: Colors.white),
-                          ),
-                          backgroundColor: _getStatusColor(payment.status),
+                        Text('Method: ${payment.paymentMethod}'),
+                      ],
+                    ),
+                    trailing: Chip(
+                      label: Text(
+                        payment.status.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
                         ),
                       ),
-                    );
-                  },
-                ),
+                      backgroundColor: _getStatusColor(payment.status),
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
