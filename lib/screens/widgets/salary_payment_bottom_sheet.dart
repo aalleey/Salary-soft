@@ -242,7 +242,7 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
                             ],
                           ),
                         );
-                        if (confirm == true && mounted) {
+                        if (confirm == true && context.mounted) {
                           setState(() => _isLoading = true);
                           try {
                             await _firebaseService.recalculateAndSaveSalary(
@@ -250,12 +250,12 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
                               widget.salary.month,
                               widget.salary.year,
                             );
-                            if (mounted) {
+                            if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Salary recalculated successfully'), backgroundColor: Colors.green));
                             }
                           } catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
                             }
                           } finally {
@@ -278,16 +278,16 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
                             ],
                           ),
                         );
-                        if (confirm == true && mounted) {
+                        if (confirm == true && context.mounted) {
                           setState(() => _isLoading = true);
                           try {
                             await _firebaseService.deleteSalary(widget.salary.id);
-                            if (mounted) {
+                            if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Salary deleted successfully'), backgroundColor: Colors.green));
                             }
                           } catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
                             }
                           } finally {

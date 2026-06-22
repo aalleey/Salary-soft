@@ -1,18 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/payment.dart';
+import 'api_service.dart';
 
 class PaymentService {
   static final PaymentService _instance = PaymentService._internal();
   factory PaymentService() => _instance;
   PaymentService._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ApiService _api = ApiService();
 
   Future<String> recordPayment(Payment payment) async {
     try {
-      final docRef = await _firestore.collection('payments').add(payment.toFirestore());
-      return docRef.id;
+      final response = await _api.post('payments', body: payment.toJson());
+      return response['_id'] ?? response['id'];
     } catch (e) {
       debugPrint('Error recording payment: $e');
       rethrow;
@@ -21,12 +21,9 @@ class PaymentService {
 
   Future<List<Payment>> getClientPayments(String clientId) async {
     try {
-      final snapshot = await _firestore
-          .collection('payments')
-          .where('client_id', isEqualTo: clientId)
-          .orderBy('payment_date', descending: true)
-          .get();
-      return snapshot.docs.map((doc) => Payment.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('payments', queryParams: {'clientId': clientId});
+      final List<dynamic> data = response;
+      return data.map((json) => Payment.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting client payments: $e');
       return [];
@@ -35,11 +32,9 @@ class PaymentService {
 
   Future<List<Payment>> getAllPayments() async {
     try {
-      final snapshot = await _firestore
-          .collection('payments')
-          .orderBy('payment_date', descending: true)
-          .get();
-      return snapshot.docs.map((doc) => Payment.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('payments');
+      final List<dynamic> data = response;
+      return data.map((json) => Payment.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting all payments: $e');
       return [];
@@ -48,7 +43,7 @@ class PaymentService {
 
   Future<void> updatePaymentStatus(String paymentId, String status) async {
     try {
-      await _firestore.collection('payments').doc(paymentId).update({'status': status});
+      await _api.put('payments/$paymentId', body: {'status': status});
     } catch (e) {
       debugPrint('Error updating payment status: $e');
       rethrow;

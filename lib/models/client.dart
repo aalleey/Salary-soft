@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Client {
   final String id;
   final String instituteName;
@@ -13,6 +11,7 @@ class Client {
   final DateTime createdAt;
   final String createdBy;
   final String currency; // 'PKR', 'USD', etc.
+  final int clientNumber;
 
   Client({
     required this.id,
@@ -27,42 +26,46 @@ class Client {
     required this.createdAt,
     required this.createdBy,
     this.currency = 'PKR',
+    this.clientNumber = 0,
   });
 
-  factory Client.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Client.fromJson(Map<String, dynamic> json) {
     return Client(
-      id: documentId,
-      instituteName: data['institute_name'] ?? '',
-      ownerName: data['owner_name'] ?? '',
-      phone: data['phone'] ?? '',
-      email: data['email'] ?? '',
-      address: data['address'] ?? '',
-      status: data['status'] ?? 'active',
-      isDeleted: data['is_deleted'] ?? false,
-      deletedAt: data['deleted_at'] != null 
-          ? (data['deleted_at'] as Timestamp).toDate() 
+      id: json['_id'] ?? json['id'] ?? '',
+      instituteName: json['instituteName'] ?? '',
+      ownerName: json['ownerName'] ?? '',
+      phone: json['phone'] ?? '',
+      email: json['email'] ?? '',
+      address: json['address'] ?? '',
+      status: json['status'] ?? 'active',
+      isDeleted: json['isDeleted'] ?? false,
+      deletedAt: json['deletedAt'] != null 
+          ? DateTime.parse(json['deletedAt']) 
           : null,
-      createdAt: data['created_at'] != null 
-          ? (data['created_at'] as Timestamp).toDate() 
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
-      createdBy: data['created_by'] ?? '',
-      currency: data['currency'] ?? 'PKR',
+      createdBy: json['createdBy'] ?? '',
+      currency: json['currency'] ?? 'PKR',
+      clientNumber: json['clientNumber'] ?? 0,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'institute_name': instituteName,
-      'owner_name': ownerName,
+      'id': id,
+      'instituteName': instituteName,
+      'ownerName': ownerName,
       'phone': phone,
       'email': email,
       'address': address,
       'status': status,
-      'is_deleted': isDeleted,
-      'deleted_at': deletedAt != null ? Timestamp.fromDate(deletedAt!) : null,
-      'created_at': Timestamp.fromDate(createdAt),
-      'created_by': createdBy,
+      'isDeleted': isDeleted,
+      'deletedAt': deletedAt?.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
+      'createdBy': createdBy,
       'currency': currency,
+      'clientNumber': clientNumber,
     };
   }
 }

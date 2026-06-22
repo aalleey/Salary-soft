@@ -1,53 +1,53 @@
 import 'package:flutter/material.dart';
 
-/// The hierarchical roles in SalarySoft.
-enum UserRole { superUser, admin, employee }
+/// The hierarchical roles in SalarySoft mapped from the Node.js API.
+enum UserRole { superAdmin, clientAdmin, staff }
 
 extension UserRoleX on UserRole {
   /// Human-readable display name.
   String get displayName {
     switch (this) {
-      case UserRole.superUser:
-        return 'Super User';
-      case UserRole.admin:
-        return 'Admin';
-      case UserRole.employee:
-        return 'Employee';
+      case UserRole.superAdmin:
+        return 'App Owner';
+      case UserRole.clientAdmin:
+        return 'Client Admin';
+      case UserRole.staff:
+        return 'Staff';
     }
   }
 
   /// Short label for badges.
   String get shortLabel {
     switch (this) {
-      case UserRole.superUser:
-        return 'SUPER USER';
-      case UserRole.admin:
+      case UserRole.superAdmin:
+        return 'SUPER ADMIN';
+      case UserRole.clientAdmin:
         return 'ADMIN';
-      case UserRole.employee:
+      case UserRole.staff:
         return 'STAFF';
     }
   }
 
-  /// Firestore field value.
-  String get firestoreValue {
+  /// API payload string value.
+  String get apiValue {
     switch (this) {
-      case UserRole.superUser:
-        return 'superUser';
-      case UserRole.admin:
-        return 'admin';
-      case UserRole.employee:
-        return 'employee';
+      case UserRole.superAdmin:
+        return 'super_admin';
+      case UserRole.clientAdmin:
+        return 'client_admin';
+      case UserRole.staff:
+        return 'staff';
     }
   }
 
   /// Brand colour for each role.
   Color get color {
     switch (this) {
-      case UserRole.superUser:
+      case UserRole.superAdmin:
         return const Color(0xFFF806CC); // Magenta
-      case UserRole.admin:
+      case UserRole.clientAdmin:
         return const Color(0xFF7C3AED); // Purple
-      case UserRole.employee:
+      case UserRole.staff:
         return const Color(0xFF3B82F6); // Blue
     }
   }
@@ -55,11 +55,11 @@ extension UserRoleX on UserRole {
   /// Secondary/darker colour for gradients.
   Color get colorDark {
     switch (this) {
-      case UserRole.superUser:
+      case UserRole.superAdmin:
         return const Color(0xFF7C3AED);
-      case UserRole.admin:
+      case UserRole.clientAdmin:
         return const Color(0xFF4C1D95);
-      case UserRole.employee:
+      case UserRole.staff:
         return const Color(0xFF1D4ED8);
     }
   }
@@ -69,42 +69,31 @@ extension UserRoleX on UserRole {
   /// Icon representing the role.
   IconData get icon {
     switch (this) {
-      case UserRole.superUser:
+      case UserRole.superAdmin:
         return Icons.admin_panel_settings_rounded;
-      case UserRole.admin:
+      case UserRole.clientAdmin:
         return Icons.manage_accounts_rounded;
-      case UserRole.employee:
+      case UserRole.staff:
         return Icons.badge_rounded;
     }
   }
 
-  bool get isSuperUser => this == UserRole.superUser;
-  bool get isAdmin => this == UserRole.admin;
-
-  /// Whether this role can access owner-only settings.
-  bool get canAccessOwnerSettings => this == UserRole.superUser;
-
-  /// Whether this role can manage admins.
-  bool get canManageAdmins => this == UserRole.superUser;
+  bool get isSuperAdmin => this == UserRole.superAdmin;
+  bool get isClientAdmin => this == UserRole.clientAdmin;
+  bool get isStaff => this == UserRole.staff;
 }
 
-/// Parses a raw Firestore/SharedPreferences role string into [UserRole].
+/// Parses a raw API role string into [UserRole].
 UserRole roleFromString(String? raw) {
-  final normalized = (raw ?? '').toLowerCase().trim().replaceAll(' ', '_');
+  final normalized = (raw ?? '').toLowerCase().trim();
   switch (normalized) {
-    case 'superuser':
-    case 'super_user':
     case 'super_admin':
-    case 'app_owner':
-    case 'owner':
-      return UserRole.superUser;
-    case 'admin':
-    case 'campus_admin':
-      return UserRole.admin;
-    case 'employee':
+      return UserRole.superAdmin;
+    case 'client_admin':
+      return UserRole.clientAdmin;
     case 'staff':
-      return UserRole.employee;
+      return UserRole.staff;
     default:
-      return UserRole.admin;
+      return UserRole.staff; // Default to least privileged
   }
 }

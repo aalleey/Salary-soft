@@ -34,9 +34,8 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   }
 
   Future<void> _initializeData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.currentUser;
-    final userCampus = authProvider.activeCampus;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final userCampus = auth.activeCampus;
     _isSuperAdmin = userCampus == null || userCampus.isEmpty;
 
     if (!_isSuperAdmin && userCampus != null) {

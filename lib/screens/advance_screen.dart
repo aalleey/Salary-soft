@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -206,7 +205,7 @@ class AdvanceListTab extends StatefulWidget {
 class _AdvanceListTabState extends State<AdvanceListTab> {
   List<Advance> _advances = [];
   List<Staff> _staffList = [];
-  DocumentSnapshot? _lastDocument;
+  dynamic _lastDocument;
   bool _isLoading = true;
   bool _isFetchingMore = false;
   bool _isLoadingStaff = true;
@@ -959,6 +958,7 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
 
       final advance = Advance(
         id: '',
+        clientId: user?.clientId,
         staffId: _selectedStaff!.id,
         staffName: _selectedStaff!.name,
         advanceAmount: double.parse(_amountController.text.trim()),

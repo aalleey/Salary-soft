@@ -7,7 +7,7 @@ import '../../services/subscription_service.dart';
 import 'pdf_invoice_generator.dart';
 
 class InvoicesScreen extends StatefulWidget {
-  const InvoicesScreen({Key? key}) : super(key: key);
+  const InvoicesScreen({super.key});
 
   @override
   State<InvoicesScreen> createState() => _InvoicesScreenState();

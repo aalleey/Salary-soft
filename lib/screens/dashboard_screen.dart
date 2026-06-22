@@ -242,7 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     final userRole = authProvider.userRole;
     final assignedCampuses = user?.assignedCampuses ?? <String>[];
     
-    final bool canSwitchCampus = (userRole == UserRole.admin || userRole == UserRole.superUser) && assignedCampuses.length > 1;
+    final bool canSwitchCampus = (userRole == UserRole.clientAdmin || userRole == UserRole.superAdmin) && assignedCampuses.length > 1;
     return SliverAppBar(
       expandedHeight: 280.0,
       floating: false,
@@ -457,7 +457,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          userRole == UserRole.superUser
+                          userRole == UserRole.superAdmin
                               ? 'Super User Dashboard'
                               : '${activeCampus ?? "Admin"} Campus',
                           style: const TextStyle(
@@ -758,11 +758,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildQuickActionsGrid(String? userCampus) {
-    final isSuperAdmin = userCampus == null || userCampus.isEmpty;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final role = authProvider.userRole;
+    final canManageUsersAndCampuses = role == UserRole.superAdmin || role == UserRole.clientAdmin;
 
     final List<Widget> actions = [
-      if (isSuperAdmin) ...[
+      if (canManageUsersAndCampuses) ...[
         _buildGlassyActionCard(
           'Campuses',
           'Manage Locations',

@@ -183,7 +183,7 @@ class _HomeTab extends StatelessWidget {
                 // Animated gradient background
                 AnimatedBuilder(
                   animation: headerAnim,
-                  builder: (_, __) => Container(
+                  builder: (context, child) => Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -201,7 +201,7 @@ class _HomeTab extends StatelessWidget {
                 // Orbs
                 AnimatedBuilder(
                   animation: orb1,
-                  builder: (_, __) => Positioned(
+                  builder: (context, child) => Positioned(
                     right: -60 + 30 * orb1.value,
                     top: -40 + 20 * orb1.value,
                     child: Container(
@@ -219,7 +219,7 @@ class _HomeTab extends StatelessWidget {
                 ),
                 AnimatedBuilder(
                   animation: orb2,
-                  builder: (_, __) => Positioned(
+                  builder: (context, child) => Positioned(
                     left: -30 + 20 * orb2.value,
                     bottom: 20 + 15 * orb2.value,
                     child: Container(
@@ -245,7 +245,7 @@ class _HomeTab extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            RoleBadge(role: UserRole.superUser, large: true),
+                            RoleBadge(role: UserRole.superAdmin, large: true),
                             Row(
                               children: [
                                 Consumer<ThemeProvider>(
@@ -580,7 +580,7 @@ class _ProfileTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final user = auth.currentUser;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+
 
     return Scaffold(
       appBar: AppBar(
@@ -615,7 +615,7 @@ class _ProfileTab extends StatelessWidget {
               style: Theme.of(context).textTheme.displaySmall,
             ),
             const SizedBox(height: 8),
-            const RoleBadge(role: UserRole.superUser, large: true),
+            const RoleBadge(role: UserRole.superAdmin, large: true),
             const SizedBox(height: 28),
 
             // Info card

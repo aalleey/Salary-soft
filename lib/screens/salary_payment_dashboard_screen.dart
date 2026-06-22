@@ -43,7 +43,6 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
 
   Future<void> _initializeData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.currentUser;
     _userCampus = authProvider.activeCampus;
     _isSuperAdmin = _userCampus == null || _userCampus!.isEmpty;
 

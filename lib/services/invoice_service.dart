@@ -1,18 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/invoice.dart';
+import 'api_service.dart';
 
 class InvoiceService {
   static final InvoiceService _instance = InvoiceService._internal();
   factory InvoiceService() => _instance;
   InvoiceService._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ApiService _api = ApiService();
 
   Future<String> createInvoice(Invoice invoice) async {
     try {
-      final docRef = await _firestore.collection('invoices').add(invoice.toFirestore());
-      return docRef.id;
+      final response = await _api.post('invoices', body: invoice.toJson());
+      return response['_id'] ?? response['id'];
     } catch (e) {
       debugPrint('Error creating invoice: $e');
       rethrow;
@@ -21,12 +21,9 @@ class InvoiceService {
 
   Future<List<Invoice>> getClientInvoices(String clientId) async {
     try {
-      final snapshot = await _firestore
-          .collection('invoices')
-          .where('client_id', isEqualTo: clientId)
-          .orderBy('created_at', descending: true)
-          .get();
-      return snapshot.docs.map((doc) => Invoice.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('invoices', queryParams: {'clientId': clientId});
+      final List<dynamic> data = response;
+      return data.map((json) => Invoice.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting client invoices: $e');
       return [];
@@ -35,11 +32,9 @@ class InvoiceService {
 
   Future<List<Invoice>> getAllInvoices() async {
     try {
-      final snapshot = await _firestore
-          .collection('invoices')
-          .orderBy('created_at', descending: true)
-          .get();
-      return snapshot.docs.map((doc) => Invoice.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('invoices');
+      final List<dynamic> data = response;
+      return data.map((json) => Invoice.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting all invoices: $e');
       return [];
@@ -49,26 +44,8 @@ class InvoiceService {
   Future<String> generateInvoiceNumber() async {
     final year = DateTime.now().year;
     try {
-      final snapshot = await _firestore
-          .collection('invoices')
-          .where('invoice_number', isGreaterThanOrEqualTo: 'INV-$year-')
-          .where('invoice_number', isLessThanOrEqualTo: 'INV-$year-\uf8ff')
-          .orderBy('invoice_number', descending: true)
-          .limit(1)
-          .get();
-
-      if (snapshot.docs.isEmpty) {
-        return 'INV-$year-0001';
-      }
-
-      final lastInvoiceNumber = snapshot.docs.first.data()['invoice_number'] as String;
-      final parts = lastInvoiceNumber.split('-');
-      if (parts.length == 3) {
-        final lastNumber = int.tryParse(parts[2]) ?? 0;
-        final nextNumber = (lastNumber + 1).toString().padLeft(4, '0');
-        return 'INV-$year-$nextNumber';
-      }
-      return 'INV-$year-0001';
+      final response = await _api.get('invoices/next-number');
+      return response['invoiceNumber'] ?? 'INV-$year-0001';
     } catch (e) {
       debugPrint('Error generating invoice number: $e');
       return 'INV-$year-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
@@ -77,7 +54,7 @@ class InvoiceService {
 
   Future<void> updateInvoiceStatus(String invoiceId, String status) async {
     try {
-      await _firestore.collection('invoices').doc(invoiceId).update({'status': status});
+      await _api.put('invoices/$invoiceId', body: {'status': status});
     } catch (e) {
       debugPrint('Error updating invoice status: $e');
       rethrow;

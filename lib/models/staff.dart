@@ -41,32 +41,33 @@ class Staff {
     this.profileImageUrl,
   });
 
-  factory Staff.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Staff.fromJson(Map<String, dynamic> json) {
     return Staff(
-      id: documentId,
-      clientId: data['client_id'],
-      name: data['name'] ?? '',
-      salary: (data['salary'] as num?)?.toDouble() ?? 0.0,
-      phone: data['phone'] ?? '',
-      campus: data['campus'] ?? '',
-      isActive: data['isActive'] ?? true,
-      password: data['password'],
-      fatherHusbandName: data['fatherHusbandName'],
-      cnic: data['cnic'],
-      address: data['address'],
-      designation: data['designation'],
-      joiningDate: data['joiningDate'],
-      salaryType: data['salaryType'] ?? 'Monthly',
-      bankAccount: data['bankAccount'],
-      emergencyContact: data['emergencyContact'],
-      notes: data['notes'],
-      profileImageUrl: data['profileImageUrl'],
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'],
+      name: json['name'] ?? '',
+      salary: (json['salary'] as num?)?.toDouble() ?? 0.0,
+      phone: json['phone'] ?? '',
+      campus: json['campus'] ?? '',
+      isActive: json['isActive'] ?? true,
+      password: json['password'],
+      fatherHusbandName: json['fatherHusbandName'],
+      cnic: json['cnic'],
+      address: json['address'],
+      designation: json['designation'],
+      joiningDate: json['joiningDate'],
+      salaryType: json['salaryType'] ?? 'Monthly',
+      bankAccount: json['bankAccount'],
+      emergencyContact: json['emergencyContact'],
+      notes: json['notes'],
+      profileImageUrl: json['profileImageUrl'],
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
+      'id': id,
+      'clientId': clientId,
       'name': name,
       'salary': salary,
       'phone': phone,

@@ -5,7 +5,7 @@ import '../../services/subscription_service.dart';
 class AddEditPackageScreen extends StatefulWidget {
   final Package? package;
 
-  const AddEditPackageScreen({Key? key, this.package}) : super(key: key);
+  const AddEditPackageScreen({super.key, this.package});
 
   @override
   State<AddEditPackageScreen> createState() => _AddEditPackageScreenState();
@@ -16,13 +16,10 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
   final SubscriptionService _service = SubscriptionService();
   
   late TextEditingController _nameController;
-  late TextEditingController _descriptionController;
   late TextEditingController _priceController;
   late TextEditingController _maxStaffController;
   late TextEditingController _maxCampusesController;
   late TextEditingController _featureController;
-
-  String _billingCycle = 'monthly';
   bool _isActive = true;
   List<String> _features = [];
   bool _isLoading = false;

@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'api_service.dart';
 import 'package:flutter/foundation.dart';
 import '../models/audit_log.dart';
 
@@ -7,11 +7,11 @@ class AuditService {
   factory AuditService() => _instance;
   AuditService._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ApiService _api = ApiService();
 
   Future<void> log(AuditLog logData) async {
     try {
-      await _firestore.collection('audit_logs').add(logData.toFirestore());
+      await _api.post('audit', body: logData.toJson());
     } catch (e) {
       debugPrint('Error saving audit log: $e');
       // We don't rethrow because audit logging shouldn't crash the main operation
@@ -20,14 +20,13 @@ class AuditService {
 
   Future<List<AuditLog>> getLogs({String? clientId, int limit = 100}) async {
     try {
-      Query query = _firestore.collection('audit_logs').orderBy('created_at', descending: true);
-      
-      if (clientId != null) {
-        query = query.where('client_id', isEqualTo: clientId);
-      }
+      final queryParams = <String, String>{};
+      if (clientId != null) queryParams['clientId'] = clientId;
+      queryParams['limit'] = limit.toString();
 
-      final snapshot = await query.limit(limit).get();
-      return snapshot.docs.map((doc) => AuditLog.fromFirestore(doc.data() as Map<String, dynamic>, doc.id)).toList();
+      final response = await _api.get('audit', queryParams: queryParams);
+      final List<dynamic> data = response;
+      return data.map((json) => AuditLog.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting audit logs: $e');
       return [];

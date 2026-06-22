@@ -8,7 +8,7 @@ import '../../services/subscription_service.dart';
 class AddEditSubscriptionScreen extends StatefulWidget {
   final Subscription? subscription;
 
-  const AddEditSubscriptionScreen({Key? key, this.subscription}) : super(key: key);
+  const AddEditSubscriptionScreen({super.key, this.subscription});
 
   @override
   State<AddEditSubscriptionScreen> createState() => _AddEditSubscriptionScreenState();
@@ -140,7 +140,7 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _selectedClientId,
+                      initialValue: _selectedClientId,
                       decoration: const InputDecoration(labelText: 'Client (Institute)'),
                       items: _clients.map((c) => DropdownMenuItem(
                         value: c.id,
@@ -151,7 +151,7 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedPackageId,
+                      initialValue: _selectedPackageId,
                       decoration: const InputDecoration(labelText: 'Package'),
                       items: _packages.map((p) => DropdownMenuItem(
                         value: p.id,
@@ -162,7 +162,7 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _status,
+                      initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
                         DropdownMenuItem(value: 'active', child: Text('Active')),

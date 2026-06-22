@@ -11,7 +11,7 @@ import 'audit_logs_screen.dart';
 import '../login_screen.dart';
 
 class SuperAdminDashboardScreen extends StatelessWidget {
-  const SuperAdminDashboardScreen({Key? key}) : super(key: key);
+  const SuperAdminDashboardScreen({super.key});
 
   void _handleLogout(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -28,7 +28,7 @@ class SuperAdminDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Super Admin Dashboard'),
+        title: const Text('App Owner Dashboard'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -129,7 +129,7 @@ class SuperAdminDashboardScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 32),
@@ -149,7 +149,7 @@ class SuperAdminDashboardScreen extends StatelessWidget {
             subtitle,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),

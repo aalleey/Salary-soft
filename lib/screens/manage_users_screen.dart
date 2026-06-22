@@ -66,6 +66,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     if (confirm == true) {
       try {
         await _firebaseService.deleteUser(id);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('User deleted successfully'),
@@ -74,6 +75,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         );
         _loadUsers();
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error deleting user: $e'),
@@ -300,13 +302,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         ),
         trailing: PopupMenuButton(
           icon: const Icon(Icons.more_vert),
-          itemBuilder: (context) => [
+          itemBuilder: (ctx) => [
             PopupMenuItem(
               onTap: () async {
                 await Future.delayed(const Duration(milliseconds: 100));
-                if (!mounted) return;
+                if (!ctx.mounted) return;
                 final result = await Navigator.push(
-                  context,
+                  ctx,
                   MaterialPageRoute(
                     builder: (_) => AddEditUserScreen(user: user),
                   ),
@@ -322,7 +324,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             PopupMenuItem(
               onTap: () => Future.delayed(
                 const Duration(milliseconds: 100),
-                () => _deleteUser(user['id'], username),
+                () => _deleteUser(user['id'] ?? user['_id'], username),
               ),
               child: const ListTile(
                 leading: Icon(Icons.delete, color: Colors.red),

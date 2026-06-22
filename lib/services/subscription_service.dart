@@ -1,25 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/client.dart';
 import '../models/package.dart';
 import '../models/subscription.dart';
+import 'api_service.dart';
 
 class SubscriptionService {
   static final SubscriptionService _instance = SubscriptionService._internal();
   factory SubscriptionService() => _instance;
   SubscriptionService._internal();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ApiService _api = ApiService();
 
   // --- Clients ---
 
   Future<List<Client>> getClients() async {
     try {
-      final snapshot = await _firestore
-          .collection('clients')
-          .where('is_deleted', isEqualTo: false)
-          .get();
-      final list = snapshot.docs.map((doc) => Client.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('clients');
+      final List<dynamic> data = response;
+      final list = data.map((json) => Client.fromJson(json)).toList();
       list.sort((a, b) => a.instituteName.toLowerCase().compareTo(b.instituteName.toLowerCase()));
       return list;
     } catch (e) {
@@ -30,19 +28,22 @@ class SubscriptionService {
 
   Future<Client?> getClient(String id) async {
     try {
-      final doc = await _firestore.collection('clients').doc(id).get();
-      if (!doc.exists) return null;
-      return Client.fromFirestore(doc.data()!, doc.id);
+      final response = await _api.get('clients/$id');
+      return Client.fromJson(response);
     } catch (e) {
       debugPrint('Error getting client: $e');
       return null;
     }
   }
 
-  Future<String> addClient(Client client) async {
+  Future<String> addClient(Client client, {String? password}) async {
     try {
-      final docRef = await _firestore.collection('clients').add(client.toFirestore());
-      return docRef.id;
+      final body = client.toJson();
+      if (password != null && password.isNotEmpty) {
+        body['password'] = password;
+      }
+      final response = await _api.post('clients', body: body);
+      return response['_id'] ?? response['id'];
     } catch (e) {
       debugPrint('Error adding client: $e');
       rethrow;
@@ -51,7 +52,7 @@ class SubscriptionService {
 
   Future<void> updateClient(String id, Client client) async {
     try {
-      await _firestore.collection('clients').doc(id).update(client.toFirestore());
+      await _api.put('clients/$id', body: client.toJson());
     } catch (e) {
       debugPrint('Error updating client: $e');
       rethrow;
@@ -60,10 +61,7 @@ class SubscriptionService {
 
   Future<void> deleteClient(String id) async {
     try {
-      await _firestore.collection('clients').doc(id).update({
-        'is_deleted': true,
-        'deleted_at': FieldValue.serverTimestamp(),
-      });
+      await _api.delete('clients/$id');
     } catch (e) {
       debugPrint('Error deleting client: $e');
       rethrow;
@@ -74,11 +72,9 @@ class SubscriptionService {
 
   Future<List<Package>> getPackages() async {
     try {
-      final snapshot = await _firestore
-          .collection('packages')
-          .where('is_active', isEqualTo: true)
-          .get();
-      final list = snapshot.docs.map((doc) => Package.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('packages');
+      final List<dynamic> data = response;
+      final list = data.map((json) => Package.fromJson(json)).toList();
       list.sort((a, b) => a.price.compareTo(b.price));
       return list;
     } catch (e) {
@@ -89,9 +85,8 @@ class SubscriptionService {
 
   Future<Package?> getPackage(String id) async {
     try {
-      final doc = await _firestore.collection('packages').doc(id).get();
-      if (!doc.exists) return null;
-      return Package.fromFirestore(doc.data()!, doc.id);
+      final response = await _api.get('packages/$id');
+      return Package.fromJson(response);
     } catch (e) {
       debugPrint('Error getting package: $e');
       return null;
@@ -100,8 +95,8 @@ class SubscriptionService {
 
   Future<String> addPackage(Package package) async {
     try {
-      final docRef = await _firestore.collection('packages').add(package.toFirestore());
-      return docRef.id;
+      final response = await _api.post('packages', body: package.toJson());
+      return response['_id'] ?? response['id'];
     } catch (e) {
       debugPrint('Error adding package: $e');
       rethrow;
@@ -110,7 +105,7 @@ class SubscriptionService {
 
   Future<void> updatePackage(String id, Package package) async {
     try {
-      await _firestore.collection('packages').doc(id).update(package.toFirestore());
+      await _api.put('packages/$id', body: package.toJson());
     } catch (e) {
       debugPrint('Error updating package: $e');
       rethrow;
@@ -121,13 +116,10 @@ class SubscriptionService {
 
   Future<Subscription?> getActiveSubscription(String clientId) async {
     try {
-      final snapshot = await _firestore
-          .collection('subscriptions')
-          .where('client_id', isEqualTo: clientId)
-          .get();
-      
-      if (snapshot.docs.isEmpty) return null;
-      final list = snapshot.docs.map((doc) => Subscription.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('subscriptions', queryParams: {'clientId': clientId, 'status': 'active'});
+      final List<dynamic> data = response;
+      if (data.isEmpty) return null;
+      final list = data.map((json) => Subscription.fromJson(json)).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list.first;
     } catch (e) {
@@ -138,11 +130,9 @@ class SubscriptionService {
 
   Future<List<Subscription>> getAllSubscriptions() async {
     try {
-      final snapshot = await _firestore
-          .collection('subscriptions')
-          .orderBy('created_at', descending: true)
-          .get();
-      return snapshot.docs.map((doc) => Subscription.fromFirestore(doc.data(), doc.id)).toList();
+      final response = await _api.get('subscriptions');
+      final List<dynamic> data = response;
+      return data.map((json) => Subscription.fromJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting all subscriptions: $e');
       return [];
@@ -151,19 +141,8 @@ class SubscriptionService {
 
   Future<String> addSubscription(Subscription sub) async {
     try {
-      // Deactivate older subscriptions
-      final existing = await _firestore
-          .collection('subscriptions')
-          .where('client_id', isEqualTo: sub.clientId)
-          .where('status', isEqualTo: 'active')
-          .get();
-          
-      for (var doc in existing.docs) {
-        await doc.reference.update({'status': 'expired'});
-      }
-
-      final docRef = await _firestore.collection('subscriptions').add(sub.toFirestore());
-      return docRef.id;
+      final response = await _api.post('subscriptions', body: sub.toJson());
+      return response['_id'] ?? response['id'];
     } catch (e) {
       debugPrint('Error creating subscription: $e');
       rethrow;
@@ -172,10 +151,7 @@ class SubscriptionService {
 
   Future<void> updateSubscriptionStatus(String id, String status) async {
     try {
-      await _firestore.collection('subscriptions').doc(id).update({
-        'status': status,
-        'updated_at': FieldValue.serverTimestamp(),
-      });
+      await _api.put('subscriptions/$id', body: {'status': status});
     } catch (e) {
       debugPrint('Error updating subscription status: $e');
       rethrow;
@@ -184,7 +160,7 @@ class SubscriptionService {
 
   Future<void> updateSubscription(String id, Subscription sub) async {
     try {
-      await _firestore.collection('subscriptions').doc(id).update(sub.toFirestore());
+      await _api.put('subscriptions/$id', body: sub.toJson());
     } catch (e) {
       debugPrint('Error updating subscription: $e');
       rethrow;

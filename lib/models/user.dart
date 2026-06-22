@@ -1,59 +1,50 @@
 class User {
   final String id;
-  final String? clientId; // The client this user belongs to
+  final String? clientId;
+  final String? campusId;
   final String username;
+  final String email;
   final String role;
-  final List<String> assignedCampuses;
-  final Map<String, bool> permissions;
+  final List<String> permissions;
 
   User({
     required this.id,
     this.clientId,
+    this.campusId,
     required this.username,
+    required this.email,
     required this.role,
-    required this.assignedCampuses,
-    this.permissions = const {},
+    this.permissions = const [],
   });
 
   bool hasPermission(String permissionName) {
-    if (role == 'super_admin') return true;
-    return permissions[permissionName] ?? false;
+    if (role == 'super_admin' || role == 'client_admin') return true;
+    return permissions.contains(permissionName);
   }
 
-  factory User.fromFirestore(Map<String, dynamic> data, String documentId) {
-    List<String> campuses = [];
-    if (data['assigned_campuses'] != null) {
-      campuses = List<String>.from(data['assigned_campuses']);
-    } else if (data['campus'] != null && data['campus'] is String) {
-      final String legacyCampus = data['campus'];
-      if (legacyCampus.isNotEmpty) {
-        campuses = [legacyCampus];
-      }
+  List<String> get assignedCampuses {
+    if (campusId != null && campusId!.isNotEmpty) {
+      return [campusId!];
     }
+    return [];
+  }
 
-    Map<String, bool> perms = {};
-    if (data['permissions'] != null) {
-      perms = Map<String, bool>.from(data['permissions']);
+  // Parses user data directly from the Node.js API response
+  factory User.fromJson(Map<String, dynamic> json) {
+    List<String> perms = [];
+    if (json['permissions'] != null) {
+      perms = List<String>.from(json['permissions']);
     }
 
     return User(
-      id: documentId,
-      clientId: data['client_id'],
-      username: data['username'] ?? '',
-      role: data['role'] ?? 'admin',
-      assignedCampuses: campuses,
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'],
+      campusId: json['campusId'],
+      username: json['name'] ?? '',
+      email: json['email'] ?? '',
+      role: json['role'] ?? 'staff',
       permissions: perms,
     );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'client_id': clientId,
-      'username': username, 
-      'role': role, 
-      'assigned_campuses': assignedCampuses,
-      'permissions': permissions,
-    };
   }
 
   // For SharedPreferences storage
@@ -61,36 +52,11 @@ class User {
     return {
       'id': id, 
       'clientId': clientId,
-      'username': username, 
+      'campusId': campusId,
+      'name': username, 
+      'email': email,
       'role': role, 
-      'assignedCampuses': assignedCampuses,
       'permissions': permissions,
     };
-  }
-
-  factory User.fromJson(Map<String, dynamic> json) {
-    List<String> campuses = [];
-    if (json['assignedCampuses'] != null) {
-      campuses = List<String>.from(json['assignedCampuses']);
-    } else if (json['campus'] != null && json['campus'] is String) {
-      final String legacyCampus = json['campus'];
-      if (legacyCampus.isNotEmpty) {
-        campuses = [legacyCampus];
-      }
-    }
-
-    Map<String, bool> perms = {};
-    if (json['permissions'] != null) {
-      perms = Map<String, bool>.from(json['permissions']);
-    }
-
-    return User(
-      id: json['id'] ?? '',
-      clientId: json['clientId'],
-      username: json['username'] ?? '',
-      role: json['role'] ?? 'admin',
-      assignedCampuses: campuses,
-      permissions: perms,
-    );
   }
 }

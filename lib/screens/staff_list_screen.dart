@@ -61,7 +61,6 @@ class _StaffListScreenState extends State<StaffListScreen> {
 
   void _applyFilter() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.currentUser;
 
     setState(() {
       // Check if user has a specific campus (not null AND not empty)
@@ -120,7 +119,6 @@ class _StaffListScreenState extends State<StaffListScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
 
     return Scaffold(
       body: RefreshIndicator(

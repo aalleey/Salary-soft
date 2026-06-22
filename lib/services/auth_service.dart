@@ -3,59 +3,44 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../models/user.dart';
-import 'firebase_auth_service.dart';
-import 'firebase_service.dart';
+import 'api_service.dart';
 
 class AuthService {
-  final FirebaseAuthService _firebaseAuth = FirebaseAuthService();
+  final ApiService _apiService = ApiService();
   User? _currentUser;
 
   User? get currentUser => _currentUser;
 
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(String email, String password) async {
     try {
-      debugPrint('AuthService: Calling FirebaseAuthService.login()');
-      bool success = await _firebaseAuth.login(username, password);
-      debugPrint('AuthService: FirebaseAuthService.login() returned: $success');
+      debugPrint('AuthService: Calling API for login...');
+      
+      final response = await _apiService.post(
+        'auth/login',
+        body: {
+          'email': email,
+          'password': password,
+        },
+        requiresAuth: false, // Don't send token for login
+      );
 
-      if (success) {
-        _currentUser = _firebaseAuth.currentUser;
-        FirebaseService().setAppUser(_currentUser);
+      debugPrint('AuthService: Login successful');
+      
+      // Save the access token securely
+      final String token = response['accessToken'];
+      await _apiService.saveToken(token);
+
+      // Parse and save the user data
+      _currentUser = User.fromJson(response);
+      
+      if (_currentUser != null) {
+        debugPrint('AuthService: User logged in: ${_currentUser!.username} with role ${_currentUser!.role}');
+        await _saveUserData(_currentUser!.toJson());
+        return true;
       } else {
-        // Try staff login if admin login fails
-        debugPrint('AuthService: Admin login failed, trying staff login...');
-        final staff = await FirebaseService().verifyStaffCredentials(
-          username,
-          password,
-        );
-
-        if (staff != null) {
-          debugPrint('AuthService: Staff login successful: ${staff.name}');
-          _currentUser = User(
-            id: staff.id,
-            clientId: staff.clientId,
-            username: staff.name,
-            role: 'employee',
-            assignedCampuses: [staff.campus],
-          );
-          FirebaseService().setAppUser(_currentUser);
-          success = true;
-        }
+        debugPrint('AuthService: WARNING - Login successful but failed to parse user');
+        return false;
       }
-
-      if (success) {
-        if (_currentUser != null) {
-          debugPrint('AuthService: User logged in: ${_currentUser!.username}');
-          await _saveUserData(_currentUser!.toJson());
-        } else {
-          debugPrint(
-            'AuthService: WARNING - Login successful but currentUser is null',
-          );
-        }
-      } else {
-        debugPrint('AuthService: Login failed');
-      }
-      return success;
     } catch (e) {
       debugPrint('AuthService: Login error: $e');
       return false;
@@ -64,9 +49,8 @@ class AuthService {
 
   Future<void> logout() async {
     try {
-      await _firebaseAuth.logout();
+      await _apiService.clearToken();
       _currentUser = null;
-      FirebaseService().setAppUser(null);
       await _clearUserData();
     } catch (e) {
       debugPrint('Logout error: $e');
@@ -74,23 +58,21 @@ class AuthService {
   }
 
   Future<bool> checkAuth() async {
-    try {
-      final success = await _firebaseAuth.checkAuth();
-      if (success) {
-        _currentUser = _firebaseAuth.currentUser;
-        FirebaseService().setAppUser(_currentUser);
-      }
-      return success;
-    } catch (e) {
-      debugPrint('Auth check error: $e');
-      return false;
-    }
+    return await loadUserData();
   }
 
-  /// Sends a Firebase password-reset email.
-  /// Returns null on success, or an error message string on failure.
+  /// Sends a password-reset email using the API
   Future<String?> sendPasswordReset(String email) async {
-    return _firebaseAuth.sendPasswordResetEmail(email);
+    try {
+      await _apiService.post(
+        'auth/forgot-password',
+        body: {'email': email},
+        requiresAuth: false,
+      );
+      return null; // success
+    } catch (e) {
+      return e.toString();
+    }
   }
 
   Future<void> _saveUserData(Map<String, dynamic> userData) async {
@@ -109,23 +91,19 @@ class AuthService {
 
   Future<bool> loadUserData() async {
     try {
-      final success = await _firebaseAuth.loadUserData();
-      if (success) {
-        _currentUser = _firebaseAuth.currentUser;
-        if (_currentUser != null) {
-          FirebaseService().setAppUser(_currentUser);
-          await _saveUserData(_currentUser!.toJson());
-        }
-        return true;
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Check if we have a token
+      final token = prefs.getString(AppConfig.tokenKey);
+      if (token == null || token.isEmpty) {
+        return false;
       }
 
-      // Fallback to local storage
-      final prefs = await SharedPreferences.getInstance();
+      // Check if we have user data
       final userDataString = prefs.getString(AppConfig.userKey);
       if (userDataString != null) {
         final userData = jsonDecode(userDataString) as Map<String, dynamic>;
         _currentUser = User.fromJson(userData);
-        FirebaseService().setAppUser(_currentUser);
         return true;
       }
 

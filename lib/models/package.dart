@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Package {
   final String id;
@@ -21,30 +20,31 @@ class Package {
     required this.createdAt,
   });
 
-  factory Package.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Package.fromJson(Map<String, dynamic> json) {
     return Package(
-      id: documentId,
-      name: data['name'] ?? '',
-      price: (data['price'] as num?)?.toDouble() ?? 0.0,
-      staffLimit: data['staff_limit'] ?? 0,
-      campusLimit: data['campus_limit'] ?? 0,
-      features: List<String>.from(data['features'] ?? []),
-      isActive: data['is_active'] ?? true,
-      createdAt: data['created_at'] != null 
-          ? (data['created_at'] as Timestamp).toDate() 
+      id: json['_id'] ?? json['id'] ?? '',
+      name: json['name'] ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      staffLimit: json['staffLimit'] ?? 0,
+      campusLimit: json['campusLimit'] ?? 0,
+      features: List<String>.from(json['features'] ?? []),
+      isActive: json['isActive'] ?? true,
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'price': price,
-      'staff_limit': staffLimit,
-      'campus_limit': campusLimit,
+      'staffLimit': staffLimit,
+      'campusLimit': campusLimit,
       'features': features,
-      'is_active': isActive,
-      'created_at': Timestamp.fromDate(createdAt),
+      'isActive': isActive,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

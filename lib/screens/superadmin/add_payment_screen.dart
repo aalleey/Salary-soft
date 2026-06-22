@@ -7,7 +7,7 @@ import '../../services/subscription_service.dart';
 import '../../providers/auth_provider.dart';
 
 class AddPaymentScreen extends StatefulWidget {
-  const AddPaymentScreen({Key? key}) : super(key: key);
+  const AddPaymentScreen({super.key});
 
   @override
   State<AddPaymentScreen> createState() => _AddPaymentScreenState();
@@ -113,7 +113,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _selectedClientId,
+                      initialValue: _selectedClientId,
                       decoration: const InputDecoration(labelText: 'Client (Institute)'),
                       items: _clients.map((c) => DropdownMenuItem(
                         value: c.id,
@@ -145,7 +145,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                         Expanded(
                           flex: 1,
                           child: DropdownButtonFormField<String>(
-                            value: _currency,
+                            initialValue: _currency,
                             decoration: const InputDecoration(labelText: 'Currency'),
                             items: const [
                               DropdownMenuItem(value: 'PKR', child: Text('PKR')),
@@ -160,7 +160,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _paymentMethod,
+                      initialValue: _paymentMethod,
                       decoration: const InputDecoration(labelText: 'Payment Method'),
                       items: const [
                         DropdownMenuItem(value: 'cash', child: Text('Cash')),
@@ -178,7 +178,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _status,
+                      initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
                         DropdownMenuItem(value: 'completed', child: Text('Completed')),

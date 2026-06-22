@@ -7,7 +7,7 @@ import '../../providers/auth_provider.dart';
 class AddEditClientScreen extends StatefulWidget {
   final Client? client;
 
-  const AddEditClientScreen({Key? key, this.client}) : super(key: key);
+  const AddEditClientScreen({super.key, this.client});
 
   @override
   State<AddEditClientScreen> createState() => _AddEditClientScreenState();
@@ -22,6 +22,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
   late TextEditingController _addressController;
+  late TextEditingController _passwordController;
   String _status = 'active';
   String _currency = 'PKR';
   bool _isLoading = false;
@@ -34,6 +35,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
     _phoneController = TextEditingController(text: widget.client?.phone ?? '');
     _emailController = TextEditingController(text: widget.client?.email ?? '');
     _addressController = TextEditingController(text: widget.client?.address ?? '');
+    _passwordController = TextEditingController();
     _status = widget.client?.status ?? 'active';
     _currency = widget.client?.currency ?? 'PKR';
   }
@@ -45,6 +47,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _addressController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -69,7 +72,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
       );
 
       if (widget.client == null) {
-        await _service.addClient(clientData);
+        await _service.addClient(clientData, password: _passwordController.text);
       } else {
         await _service.updateClient(widget.client!.id, clientData);
       }
@@ -130,8 +133,17 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 16),
+                    if (widget.client == null) ...[
+                      TextFormField(
+                        controller: _passwordController,
+                        decoration: const InputDecoration(labelText: 'Login Password'),
+                        obscureText: true,
+                        validator: (v) => v!.isEmpty ? 'Required for new clients' : null,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     DropdownButtonFormField<String>(
-                      value: _currency,
+                      initialValue: _currency,
                       decoration: const InputDecoration(labelText: 'Currency'),
                       items: const [
                         DropdownMenuItem(value: 'PKR', child: Text('PKR (Rs)')),
@@ -143,7 +155,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _status,
+                      initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
                         DropdownMenuItem(value: 'active', child: Text('Active')),

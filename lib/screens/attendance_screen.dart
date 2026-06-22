@@ -349,7 +349,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Widget _buildCampusFilterChips() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.currentUser;
     final userCampus = authProvider.activeCampus;
     final isSuperAdmin = userCampus == null || userCampus.isEmpty;
 

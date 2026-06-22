@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuditLog {
   final String id;
@@ -21,30 +20,31 @@ class AuditLog {
     required this.createdAt,
   });
 
-  factory AuditLog.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory AuditLog.fromJson(Map<String, dynamic> json) {
     return AuditLog(
-      id: documentId,
-      userId: data['user_id'] ?? '',
-      userName: data['user_name'] ?? '',
-      clientId: data['client_id'],
-      action: data['action'] ?? '',
-      details: data['details'] ?? '',
-      ip: data['ip'],
-      createdAt: data['created_at'] != null 
-          ? (data['created_at'] as Timestamp).toDate() 
+      id: json['_id'] ?? json['id'] ?? '',
+      userId: json['userId'] is Map ? json['userId']['_id'] : (json['userId'] ?? ''),
+      userName: json['userId'] is Map ? json['userId']['name'] : (json['userName'] ?? ''),
+      clientId: json['clientId'],
+      action: json['action'] ?? '',
+      details: json['details'] ?? '',
+      ip: json['ip'],
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'user_id': userId,
-      'user_name': userName,
-      'client_id': clientId,
+      'id': id,
+      'userId': userId,
+      'userName': userName,
+      'clientId': clientId,
       'action': action,
       'details': details,
       'ip': ip,
-      'created_at': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

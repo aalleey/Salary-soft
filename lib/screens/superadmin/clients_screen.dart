@@ -4,7 +4,7 @@ import '../../services/subscription_service.dart';
 import 'add_edit_client_screen.dart';
 
 class ClientsScreen extends StatefulWidget {
-  const ClientsScreen({Key? key}) : super(key: key);
+  const ClientsScreen({super.key});
 
   @override
   State<ClientsScreen> createState() => _ClientsScreenState();
@@ -68,14 +68,14 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   itemBuilder: (context, index) {
                     final client = _clients[index];
                     return ListTile(
-                      title: Text(client.instituteName),
+                      title: Text('#${client.clientNumber} - ${client.instituteName}'),
                       subtitle: Text('${client.ownerName} • ${client.phone}'),
                       trailing: Chip(
                         label: Text(
                           client.status.toUpperCase(),
                           style: const TextStyle(fontSize: 10),
                         ),
-                        backgroundColor: client.status == 'active' ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                        backgroundColor: client.status == 'active' ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
                       ),
                       onTap: () async {
                         final result = await Navigator.push(

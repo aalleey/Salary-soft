@@ -4,7 +4,7 @@ import '../../services/subscription_service.dart';
 import 'add_edit_package_screen.dart';
 
 class PackagesScreen extends StatefulWidget {
-  const PackagesScreen({Key? key}) : super(key: key);
+  const PackagesScreen({super.key});
 
   @override
   State<PackagesScreen> createState() => _PackagesScreenState();

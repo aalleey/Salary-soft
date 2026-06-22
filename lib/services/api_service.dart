@@ -39,7 +39,7 @@ class ApiService {
     return headers;
   }
 
-  Future<Map<String, dynamic>> post(
+  Future<dynamic> post(
     String endpoint, {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
@@ -60,7 +60,7 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> get(
+  Future<dynamic> get(
     String endpoint, {
     Map<String, String>? queryParams,
     bool requiresAuth = true,
@@ -84,7 +84,28 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> delete(
+  Future<dynamic> put(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    bool requiresAuth = true,
+  }) async {
+    await _loadToken();
+    final url = Uri.parse('${AppConfig.baseUrl}/$endpoint');
+
+    try {
+      final response = await _client.put(
+        url,
+        headers: _getHeaders(includeAuth: requiresAuth),
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<dynamic> delete(
     String endpoint, {
     bool requiresAuth = true,
   }) async {
@@ -103,13 +124,18 @@ class ApiService {
     }
   }
 
-  Map<String, dynamic> _handleResponse(http.Response response) {
+  dynamic _handleResponse(http.Response response) {
+    if (response.body.isEmpty) return null;
+    
     final body = jsonDecode(response.body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     } else {
-      throw Exception(body['message'] ?? 'Request failed');
+      if (body is Map && body.containsKey('message')) {
+        throw Exception(body['message']);
+      }
+      throw Exception('Request failed with status ${response.statusCode}');
     }
   }
 }

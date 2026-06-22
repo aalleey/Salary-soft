@@ -21,33 +21,31 @@ class Attendance {
     this.halfLeaves = 0,
   });
 
-  factory Attendance.fromFirestore(
-    Map<String, dynamic> data,
-    String documentId,
-  ) {
+  factory Attendance.fromJson(Map<String, dynamic> json) {
     return Attendance(
-      id: documentId,
-      clientId: data['client_id'],
-      staffId: data['staff_id'] ?? '',
-      staffName: data['staff_name'] ?? '',
-      month: data['month'] ?? 0,
-      year: data['year'] ?? 0,
-      absents: data['absents'] ?? 0,
-      lates: data['lates'] ?? 0,
-      halfLeaves: data['half_leaves'] ?? 0,
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'],
+      staffId: json['staffId'] ?? '',
+      staffName: json['staffName'] ?? '',
+      month: json['month'] ?? 0,
+      year: json['year'] ?? 0,
+      absents: json['absents'] ?? 0,
+      lates: json['lates'] ?? 0,
+      halfLeaves: json['halfLeaves'] ?? 0,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
-      'staff_id': staffId,
-      'staff_name': staffName,
+      'id': id,
+      'clientId': clientId,
+      'staffId': staffId,
+      'staffName': staffName,
       'month': month,
       'year': year,
       'absents': absents,
       'lates': lates,
-      'half_leaves': halfLeaves,
+      'halfLeaves': halfLeaves,
     };
   }
 }

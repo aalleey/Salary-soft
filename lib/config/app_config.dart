@@ -1,6 +1,7 @@
 class AppConfig {
   // API Configuration
-  static const String baseUrl = 'http://localhost/Salary/api';
+  // 10.0.2.2 is the special alias to your host loopback interface in the Android Emulator
+  static const String baseUrl = 'http://10.0.2.2:5000/api';
   
   // App Information
   static const String appName = 'SalarySoft';

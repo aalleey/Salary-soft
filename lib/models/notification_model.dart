@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppNotification {
   final String id;
@@ -21,30 +20,31 @@ class AppNotification {
     required this.createdAt,
   });
 
-  factory AppNotification.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
-      id: documentId,
-      clientId: data['client_id'] ?? '',
-      userId: data['user_id'],
-      title: data['title'] ?? '',
-      message: data['message'] ?? '',
-      type: data['type'] ?? 'system',
-      isRead: data['is_read'] ?? false,
-      createdAt: data['created_at'] != null 
-          ? (data['created_at'] as Timestamp).toDate() 
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'] ?? '',
+      userId: json['userId'],
+      title: json['title'] ?? '',
+      message: json['message'] ?? '',
+      type: json['type'] ?? 'system',
+      isRead: json['isRead'] ?? false,
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
-      'user_id': userId,
+      'id': id,
+      'clientId': clientId,
+      'userId': userId,
       'title': title,
       'message': message,
       'type': type,
-      'is_read': isRead,
-      'created_at': Timestamp.fromDate(createdAt),
+      'isRead': isRead,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Subscription {
   final String id;
   final String clientId;
@@ -44,40 +42,41 @@ class Subscription {
     return endDate.difference(DateTime.now()).inDays;
   }
 
-  factory Subscription.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Subscription.fromJson(Map<String, dynamic> json) {
     return Subscription(
-      id: documentId,
-      clientId: data['client_id'] ?? '',
-      packageId: data['package_id'] ?? '',
-      packageName: data['package_name'] ?? '',
-      startDate: data['start_date'] != null 
-          ? (data['start_date'] as Timestamp).toDate() 
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'] ?? '',
+      packageId: json['packageId'] is Map ? json['packageId']['_id'] : (json['packageId'] ?? ''),
+      packageName: json['packageId'] is Map ? json['packageId']['name'] : (json['packageName'] ?? ''),
+      startDate: json['startDate'] != null 
+          ? DateTime.parse(json['startDate']) 
           : DateTime.now(),
-      endDate: data['end_date'] != null 
-          ? (data['end_date'] as Timestamp).toDate() 
+      endDate: json['endDate'] != null 
+          ? DateTime.parse(json['endDate']) 
           : DateTime.now().add(const Duration(days: 30)),
-      graceDays: data['grace_days'] ?? 7,
-      status: data['status'] ?? 'pending',
-      createdAt: data['created_at'] != null 
-          ? (data['created_at'] as Timestamp).toDate() 
+      graceDays: json['graceDays'] ?? 7,
+      status: json['status'] ?? 'pending',
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
-      updatedAt: data['updated_at'] != null 
-          ? (data['updated_at'] as Timestamp).toDate() 
+      updatedAt: json['updatedAt'] != null 
+          ? DateTime.parse(json['updatedAt']) 
           : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
-      'package_id': packageId,
-      'package_name': packageName,
-      'start_date': Timestamp.fromDate(startDate),
-      'end_date': Timestamp.fromDate(endDate),
-      'grace_days': graceDays,
+      'id': id,
+      'clientId': clientId,
+      'packageId': packageId,
+      'packageName': packageName,
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate.toIso8601String(),
+      'graceDays': graceDays,
       'status': status,
-      'created_at': Timestamp.fromDate(createdAt),
-      'updated_at': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 }

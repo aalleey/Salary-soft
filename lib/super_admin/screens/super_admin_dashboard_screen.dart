@@ -180,7 +180,7 @@ class _HomeTab extends StatelessWidget {
               children: [
                 AnimatedBuilder(
                   animation: headerAnim,
-                  builder: (_, __) => Container(
+                  builder: (context, child) => Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -198,7 +198,7 @@ class _HomeTab extends StatelessWidget {
                 // Orb 1
                 AnimatedBuilder(
                   animation: orb1,
-                  builder: (_, __) => Positioned(
+                  builder: (context, child) => Positioned(
                     right: -50 + 25 * orb1.value,
                     top: -30 + 15 * orb1.value,
                     child: Container(
@@ -217,7 +217,7 @@ class _HomeTab extends StatelessWidget {
                 // Orb 2
                 AnimatedBuilder(
                   animation: orb2,
-                  builder: (_, __) => Positioned(
+                  builder: (context, child) => Positioned(
                     left: -40 + 20 * orb2.value,
                     bottom: 10 + 10 * orb2.value,
                     child: Container(
@@ -243,8 +243,7 @@ class _HomeTab extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const RoleBadge(
-                                role: UserRole.superUser, large: true),
+                            const RoleBadge(role: UserRole.superAdmin, large: true),
                             Row(
                               children: [
                                 Consumer<ThemeProvider>(
@@ -619,7 +618,7 @@ class _ProfileTab extends StatelessWidget {
               style: Theme.of(context).textTheme.displaySmall,
             ),
             const SizedBox(height: 8),
-            const RoleBadge(role: UserRole.superUser, large: true),
+            const RoleBadge(role: UserRole.superAdmin, large: true),
             const SizedBox(height: 24),
             Card(
               child: Padding(

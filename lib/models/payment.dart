@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Payment {
   final String id;
   final String clientId;
@@ -31,42 +29,43 @@ class Payment {
     required this.createdAt,
   });
 
-  factory Payment.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Payment.fromJson(Map<String, dynamic> json) {
     return Payment(
-      id: documentId,
-      clientId: data['client_id'] ?? '',
-      subscriptionId: data['subscription_id'] ?? '',
-      amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
-      paymentMethod: data['payment_method'] ?? 'Cash',
-      transactionId: data['transaction_id'],
-      paymentDate: data['payment_date'] != null 
-          ? (data['payment_date'] as Timestamp).toDate() 
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'] ?? '',
+      subscriptionId: json['subscriptionId'] ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      paymentMethod: json['method'] ?? 'Cash',
+      transactionId: json['transactionId'],
+      paymentDate: json['paymentDate'] != null 
+          ? DateTime.parse(json['paymentDate']) 
           : DateTime.now(),
-      month: data['month'] ?? DateTime.now().month,
-      year: data['year'] ?? DateTime.now().year,
-      status: data['status'] ?? 'pending',
-      notes: data['notes'],
-      recordedBy: data['recorded_by'] ?? '',
-      createdAt: data['created_at'] != null 
-          ? (data['created_at'] as Timestamp).toDate() 
+      month: json['month'] ?? DateTime.now().month,
+      year: json['year'] ?? DateTime.now().year,
+      status: json['status'] ?? 'pending',
+      notes: json['notes'],
+      recordedBy: json['recordedBy'] ?? '',
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
-      'subscription_id': subscriptionId,
+      'id': id,
+      'clientId': clientId,
+      'subscriptionId': subscriptionId,
       'amount': amount,
-      'payment_method': paymentMethod,
-      'transaction_id': transactionId,
-      'payment_date': Timestamp.fromDate(paymentDate),
+      'method': paymentMethod,
+      'transactionId': transactionId,
+      'paymentDate': paymentDate.toIso8601String(),
       'month': month,
       'year': year,
       'status': status,
       'notes': notes,
-      'recorded_by': recordedBy,
-      'created_at': Timestamp.fromDate(createdAt),
+      'recordedBy': recordedBy,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

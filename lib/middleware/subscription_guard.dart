@@ -7,10 +7,10 @@ class SubscriptionGuard extends StatelessWidget {
   final bool requireActive;
 
   const SubscriptionGuard({
-    Key? key,
+    super.key,
     required this.child,
     this.requireActive = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +57,7 @@ class SubscriptionGuard extends StatelessWidget {
           children: [
             if (subProvider.isInGracePeriod && !requireActive)
               Container(
-                color: Colors.orange.withOpacity(0.9),
+                color: Colors.orange.withValues(alpha: 0.9),
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: Row(

@@ -15,26 +15,27 @@ class Campus {
     required this.createdAt
   });
 
-  factory Campus.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Campus.fromJson(Map<String, dynamic> json) {
     return Campus(
-      id: documentId,
-      clientId: data['client_id'],
-      name: data['name'] ?? '',
-      location: data['location'],
-      createdBy: data['created_by'],
-      createdAt: data['created_at'] != null
-          ? (data['created_at'] as dynamic).toDate()
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'],
+      name: json['name'] ?? '',
+      location: json['address'],
+      createdBy: json['createdBy'],
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
+      'id': id,
+      'clientId': clientId,
       'name': name, 
-      'location': location,
-      'created_by': createdBy,
-      'created_at': createdAt
+      'address': location,
+      'createdBy': createdBy,
+      'createdAt': createdAt.toIso8601String()
     };
   }
 }

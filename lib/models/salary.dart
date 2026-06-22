@@ -97,76 +97,74 @@ class Salary {
     this.notes,
   });
 
-  factory Salary.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Salary.fromJson(Map<String, dynamic> json) {
     return Salary(
-      id: documentId,
-      clientId: data['client_id'],
-      staffId: data['staff_id'] ?? '',
-      staffName: data['staff_name'] ?? '',
-      month: data['month'] ?? 0,
-      year: data['year'] ?? 0,
-      basicSalary: (data['basic_salary'] as num?)?.toDouble() ?? 0.0,
-      deduction: (data['deduction'] as num?)?.toDouble() ?? 0.0,
-      totalSalary: (data['total_salary'] as num?)?.toDouble() ?? 0.0,
-      absents: (data['absents'] as num?)?.toDouble() ?? 0.0,
-      lates: data['lates'] ?? 0,
-      advanceAmount: (data['advance_amount'] as num?)?.toDouble() ?? 0.0,
-      campus: data['campus'],
-      phone: data['phone'],
-      isPaid: data['is_paid'] ?? false,
-      paidDate: data['paid_date'],
-      paidAmount: _parsePaidAmount(data),
-      remainingAmount: _parseRemainingAmount(data),
-      status: _parseStatus(data),
-      notes: data['notes'],
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'],
+      staffId: json['staffId'] ?? '',
+      staffName: json['staffId'] is Map ? json['staffId']['name'] : (json['staffName'] ?? ''),
+      month: json['month'] ?? 0,
+      year: json['year'] ?? 0,
+      basicSalary: (json['basicSalary'] as num?)?.toDouble() ?? 0.0,
+      deduction: (json['deduction'] as num?)?.toDouble() ?? 0.0,
+      totalSalary: (json['totalSalary'] as num?)?.toDouble() ?? 0.0,
+      absents: (json['absents'] as num?)?.toDouble() ?? 0.0,
+      lates: json['lates'] ?? 0,
+      advanceAmount: (json['advanceAmount'] as num?)?.toDouble() ?? 0.0,
+      campus: json['campus'],
+      phone: json['phone'],
+      isPaid: json['isPaid'] ?? false,
+      paidDate: json['paidDate'],
+      paidAmount: _parsePaidAmount(json),
+      remainingAmount: _parseRemainingAmount(json),
+      status: _parseStatus(json),
+      notes: json['notes'],
     );
   }
 
-  static double _parsePaidAmount(Map<String, dynamic> data) {
-    if (data['paid_amount'] != null) {
-      return (data['paid_amount'] as num).toDouble();
+  static double _parsePaidAmount(Map<String, dynamic> json) {
+    if (json['paidAmount'] != null) {
+      return (json['paidAmount'] as num).toDouble();
     }
-    // Legacy fallback
-    if (data['is_paid'] == true) {
-      return (data['total_salary'] as num?)?.toDouble() ?? 0.0;
+    if (json['isPaid'] == true) {
+      return (json['totalSalary'] as num?)?.toDouble() ?? 0.0;
     }
     return 0.0;
   }
 
-  static double _parseRemainingAmount(Map<String, dynamic> data) {
-    if (data['remaining_amount'] != null) {
-      return (data['remaining_amount'] as num).toDouble();
+  static double _parseRemainingAmount(Map<String, dynamic> json) {
+    if (json['remainingAmount'] != null) {
+      return (json['remainingAmount'] as num).toDouble();
     }
-    // Legacy fallback
-    if (data['is_paid'] == true) return 0.0;
-    return (data['total_salary'] as num?)?.toDouble() ?? 0.0;
+    if (json['isPaid'] == true) return 0.0;
+    return (json['totalSalary'] as num?)?.toDouble() ?? 0.0;
   }
 
-  static String _parseStatus(Map<String, dynamic> data) {
-    if (data['status'] != null) return data['status'] as String;
-    // Legacy fallback
-    return (data['is_paid'] == true) ? 'Paid' : 'Pending';
+  static String _parseStatus(Map<String, dynamic> json) {
+    if (json['status'] != null) return json['status'] as String;
+    return (json['isPaid'] == true) ? 'Paid' : 'Pending';
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
-      'staff_id': staffId,
-      'staff_name': staffName,
+      'id': id,
+      'clientId': clientId,
+      'staffId': staffId,
+      'staffName': staffName,
       'month': month,
       'year': year,
-      'basic_salary': basicSalary,
+      'basicSalary': basicSalary,
       'deduction': deduction,
-      'total_salary': totalSalary,
+      'totalSalary': totalSalary,
       'absents': absents,
       'lates': lates,
-      'advance_amount': advanceAmount,
+      'advanceAmount': advanceAmount,
       'campus': campus,
       'phone': phone,
-      'is_paid': isPaid,
-      'paid_date': paidDate,
-      'paid_amount': paidAmount,
-      'remaining_amount': remainingAmount,
+      'isPaid': isPaid,
+      'paidDate': paidDate,
+      'paidAmount': paidAmount,
+      'remainingAmount': remainingAmount,
       'status': status,
       'notes': notes,
     };

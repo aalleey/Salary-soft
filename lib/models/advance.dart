@@ -25,52 +25,37 @@ class Advance {
     this.notes,
   });
 
-  factory Advance.fromFirestore(Map<String, dynamic> data, String documentId) {
-    // For backward compatibility, if month/year not set, parse from date
-    int month;
-    int year;
-
-    if (data['advance_month'] != null && data['advance_year'] != null) {
-      month = data['advance_month'] as int;
-      year = data['advance_year'] as int;
-    } else {
-      // Fallback: parse from advance_date
-      try {
-        final date = DateTime.parse(data['advance_date'] ?? '');
-        month = date.month;
-        year = date.year;
-      } catch (e) {
-        month = DateTime.now().month;
-        year = DateTime.now().year;
-      }
-    }
+  factory Advance.fromJson(Map<String, dynamic> json) {
+    int month = json['month'] ?? DateTime.now().month;
+    int year = json['year'] ?? DateTime.now().year;
 
     return Advance(
-      id: documentId,
-      clientId: data['client_id'],
-      staffId: data['staff_id'] ?? '',
-      staffName: data['staff_name'] ?? '',
-      advanceAmount: (data['advance_amount'] as num?)?.toDouble() ?? 0.0,
-      advanceDate: data['advance_date'] ?? '',
-      description: data['description'],
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'],
+      staffId: json['staffId'] ?? '',
+      staffName: json['staffId'] is Map ? json['staffId']['name'] : (json['staffName'] ?? ''),
+      advanceAmount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      advanceDate: json['createdAt'] ?? '',
+      description: json['reason'],
       advanceMonth: month,
       advanceYear: year,
-      createdBy: data['created_by'],
-      notes: data['notes'],
+      createdBy: json['createdBy'],
+      notes: json['notes'],
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
-      'staff_id': staffId,
-      'staff_name': staffName,
-      'advance_amount': advanceAmount,
-      'advance_date': advanceDate,
-      'description': description,
-      'advance_month': advanceMonth,
-      'advance_year': advanceYear,
-      'created_by': createdBy,
+      'id': id,
+      'clientId': clientId,
+      'staffId': staffId,
+      'staffName': staffName,
+      'amount': advanceAmount,
+      'createdAt': advanceDate,
+      'reason': description,
+      'month': advanceMonth,
+      'year': advanceYear,
+      'createdBy': createdBy,
       'notes': notes,
     };
   }

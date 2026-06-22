@@ -132,7 +132,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
                           Text(
                             widget.staff.designation!,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 16,
                             ),
                           ),
@@ -148,7 +148,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
                 indicatorColor: Colors.white,
                 indicatorWeight: 3,
                 labelColor: Colors.white,
-                unselectedLabelColor: Colors.white.withOpacity(0.5),
+                unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
                 tabs: const [
                   Tab(text: 'Profile'),
                   Tab(text: 'Attendance'),
@@ -376,7 +376,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: salary.isPaid ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                        color: salary.isPaid ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: salary.isPaid ? Colors.green : Colors.orange,
@@ -483,7 +483,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
           Icon(
             Icons.folder_open_rounded,
             size: 64,
-            color: Colors.grey.withOpacity(0.5),
+            color: Colors.grey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -491,7 +491,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.withOpacity(0.8),
+              color: Colors.grey.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 8),

@@ -60,15 +60,15 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (authProvider.isAuthenticated) {
       // ── Route based on role ────────────────────────────────────────────
-      final role = authProvider.userRole ?? UserRole.employee;
+      final role = authProvider.userRole ?? UserRole.staff;
       switch (role) {
-        case UserRole.superUser:
+        case UserRole.superAdmin:
           destination = const SuperAdminDashboardScreen();
           break;
-        case UserRole.admin:
+        case UserRole.clientAdmin:
           destination = const DashboardScreen();
           break;
-        case UserRole.employee:
+        case UserRole.staff:
           destination = const EmployeeDashboardScreen();
           break;
       }
@@ -78,8 +78,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => destination,
-        transitionsBuilder: (_, animation, __, child) =>
+        pageBuilder: (context, animation, secondaryAnimation) => destination,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
             FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 600),
       ),

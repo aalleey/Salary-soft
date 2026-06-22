@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Invoice {
   final String id;
@@ -27,40 +26,41 @@ class Invoice {
     required this.createdAt,
   });
 
-  factory Invoice.fromFirestore(Map<String, dynamic> data, String documentId) {
+  factory Invoice.fromJson(Map<String, dynamic> json) {
     return Invoice(
-      id: documentId,
-      clientId: data['client_id'] ?? '',
-      paymentId: data['payment_id'],
-      invoiceNumber: data['invoice_number'] ?? '',
-      clientName: data['client_name'] ?? '',
-      packageName: data['package_name'] ?? '',
-      amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
-      issueDate: data['issue_date'] != null 
-          ? (data['issue_date'] as Timestamp).toDate() 
+      id: json['_id'] ?? json['id'] ?? '',
+      clientId: json['clientId'] ?? '',
+      paymentId: json['paymentId'],
+      invoiceNumber: json['invoiceNumber'] ?? '',
+      clientName: json['clientName'] ?? '',
+      packageName: json['packageName'] ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      issueDate: json['issueDate'] != null 
+          ? DateTime.parse(json['issueDate']) 
           : DateTime.now(),
-      dueDate: data['due_date'] != null 
-          ? (data['due_date'] as Timestamp).toDate() 
+      dueDate: json['dueDate'] != null 
+          ? DateTime.parse(json['dueDate']) 
           : DateTime.now().add(const Duration(days: 7)),
-      status: data['status'] ?? 'unpaid',
-      createdAt: data['created_at'] != null 
-          ? (data['created_at'] as Timestamp).toDate() 
+      status: json['status'] ?? 'unpaid',
+      createdAt: json['createdAt'] != null 
+          ? DateTime.parse(json['createdAt']) 
           : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
-      'client_id': clientId,
-      'payment_id': paymentId,
-      'invoice_number': invoiceNumber,
-      'client_name': clientName,
-      'package_name': packageName,
+      'id': id,
+      'clientId': clientId,
+      'paymentId': paymentId,
+      'invoiceNumber': invoiceNumber,
+      'clientName': clientName,
+      'packageName': packageName,
       'amount': amount,
-      'issue_date': Timestamp.fromDate(issueDate),
-      'due_date': Timestamp.fromDate(dueDate),
+      'issueDate': issueDate.toIso8601String(),
+      'dueDate': dueDate.toIso8601String(),
       'status': status,
-      'created_at': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 }

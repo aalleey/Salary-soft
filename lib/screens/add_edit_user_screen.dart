@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/firebase_service.dart';
+import '../providers/auth_provider.dart';
+import '../auth/models/app_user.dart';
 import '../models/campus.dart';
 
 class AddEditUserScreen extends StatefulWidget {
@@ -53,12 +56,15 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
       case 'super_admin':
       case 'app_owner':
       case 'owner':
-        return 'superUser';
+        return 'super_admin';
       case 'admin':
+      case 'superadmin':
+        return 'admin';
+      case 'lower_admin':
       case 'campus_admin':
-        return 'admin';
+        return 'lower_admin';
       default:
-        return 'admin';
+        return 'lower_admin';
     }
   }
 
@@ -71,7 +77,8 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
       _usernameController.text = widget.user!['username'] ?? '';
       _emailController.text = widget.user!['email'] ?? '';
       _selectedRole = _normalizeRole(widget.user!['role'] ?? 'admin');
-      final assignedCampuses = widget.user!['assigned_campuses'] as List<dynamic>?;
+      final assignedCampuses =
+          widget.user!['assigned_campuses'] as List<dynamic>?;
       if (assignedCampuses != null && assignedCampuses.isNotEmpty) {
         _selectedCampuses = List<String>.from(assignedCampuses);
       } else {
@@ -136,7 +143,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
     try {
       if (isEditing) {
         await _firebaseService.updateUser(
-          id: widget.user!['id'],
+          id: widget.user!['id'] ?? widget.user!['_id'],
           username: _usernameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text.isNotEmpty
@@ -367,26 +374,51 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                     const SizedBox(height: 16),
 
                     // Role Selector
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedRole,
-                      decoration: _buildInputDecoration(
-                        label: 'Role',
-                        icon: Icons.admin_panel_settings_outlined,
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'superUser',
-                          child: Text('Super User (Full Access)'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'admin',
-                          child: Text('Admin (Specific Campuses)'),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedRole = value!;
-                        });
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, _) {
+                        final isAppOwner = auth.userRole == UserRole.superAdmin;
+
+                        List<DropdownMenuItem<String>> roleItems = [];
+
+                        if (isAppOwner) {
+                          roleItems = const [
+                            DropdownMenuItem(
+                              value: 'super_admin',
+                              child: Text('App Owner (Global Master)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'admin',
+                              child: Text('Super Admin (Client Owner)'),
+                            ),
+                          ];
+                          // Ensure selected role is valid
+                          if (_selectedRole == 'lower_admin') {
+                            _selectedRole = 'admin';
+                          }
+                        } else {
+                          roleItems = const [
+                            DropdownMenuItem(
+                              value: 'lower_admin',
+                              child: Text('Admin (Staff / Sub-admin)'),
+                            ),
+                          ];
+                          // Force role to lower_admin for client owners creating users
+                          _selectedRole = 'lower_admin';
+                        }
+
+                        return DropdownButtonFormField<String>(
+                          initialValue: _selectedRole,
+                          decoration: _buildInputDecoration(
+                            label: 'Role',
+                            icon: Icons.admin_panel_settings_outlined,
+                          ),
+                          items: roleItems,
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _selectedRole = value);
+                            }
+                          },
+                        );
                       },
                     ),
                     const SizedBox(height: 16),
@@ -398,62 +430,67 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _selectedRole == 'admin' ? 'Assigned Campuses *' : 'Assigned Campuses (Leave empty for Master Admin)',
+                                _selectedRole == 'admin'
+                                    ? 'Assigned Campuses *'
+                                    : 'Assigned Campuses (Leave empty for Master Admin)',
                                 style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                ..._campuses.map((campus) {
-                                  final isSelected = _selectedCampuses.contains(campus.name);
-                                  return CheckboxListTile(
-                                    title: Text(campus.name),
-                                    value: isSelected,
-                                    onChanged: (bool? value) {
-                                      setState(() {
-                                        if (value == true) {
-                                          _selectedCampuses.add(campus.name);
-                                        } else {
-                                          _selectedCampuses.remove(campus.name);
-                                        }
-                                      });
-                                    },
-                                    controlAffinity: ListTileControlAffinity.leading,
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                  );
-                                }),
-                              ],
-                            ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.amber.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.amber.shade700,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'This user will only be able to manage data for the selected campuses.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.amber.shade900,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(height: 8),
+                              ..._campuses.map((campus) {
+                                final isSelected = _selectedCampuses.contains(
+                                  campus.name,
+                                );
+                                return CheckboxListTile(
+                                  title: Text(campus.name),
+                                  value: isSelected,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      if (value == true) {
+                                        _selectedCampuses.add(campus.name);
+                                      } else {
+                                        _selectedCampuses.remove(campus.name);
+                                      }
+                                    });
+                                  },
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                );
+                              }),
+                            ],
+                          ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade200),
                       ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.amber.shade700,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'This user will only be able to manage data for the selected campuses.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.amber.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -490,8 +527,10 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                       ..._permissions.keys.map((String key) {
                         final formattedTitle = key
                             .split('_')
-                            .map((word) =>
-                                word[0].toUpperCase() + word.substring(1))
+                            .map(
+                              (word) =>
+                                  word[0].toUpperCase() + word.substring(1),
+                            )
                             .join(' ');
                         return CheckboxListTile(
                           title: Text(formattedTitle),
