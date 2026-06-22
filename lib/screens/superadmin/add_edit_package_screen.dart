@@ -14,12 +14,15 @@ class AddEditPackageScreen extends StatefulWidget {
 class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
   final _formKey = GlobalKey<FormState>();
   final SubscriptionService _service = SubscriptionService();
-  
+
   late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
   late TextEditingController _priceController;
   late TextEditingController _maxStaffController;
   late TextEditingController _maxCampusesController;
   late TextEditingController _featureController;
+
+  final String _billingCycle = 'monthly';
   bool _isActive = true;
   List<String> _features = [];
   bool _isLoading = false;
@@ -28,13 +31,21 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.package?.name ?? '');
-    _priceController = TextEditingController(text: widget.package?.price.toString() ?? '');
-    _maxStaffController = TextEditingController(text: widget.package?.staffLimit.toString() ?? '');
-    _maxCampusesController = TextEditingController(text: widget.package?.campusLimit.toString() ?? '');
+    _priceController = TextEditingController(
+      text: widget.package?.price.toString() ?? '',
+    );
+    _maxStaffController = TextEditingController(
+      text: widget.package?.staffLimit.toString() ?? '',
+    );
+    _maxCampusesController = TextEditingController(
+      text: widget.package?.campusLimit.toString() ?? '',
+    );
     _featureController = TextEditingController();
 
     _isActive = widget.package?.isActive ?? true;
-    _features = widget.package?.features != null ? List.from(widget.package!.features) : [];
+    _features = widget.package?.features != null
+        ? List.from(widget.package!.features)
+        : [];
   }
 
   @override
@@ -68,11 +79,13 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
       } else {
         await _service.updatePackage(widget.package!.id, pkg);
       }
-      
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -106,7 +119,9 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
                   children: [
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Package Name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Package Name',
+                      ),
                       validator: (v) => v!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 16),
@@ -115,7 +130,9 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _priceController,
-                            decoration: const InputDecoration(labelText: 'Price (Monthly)'),
+                            decoration: const InputDecoration(
+                              labelText: 'Price (Monthly)',
+                            ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Required' : null,
                           ),
@@ -128,7 +145,9 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _maxStaffController,
-                            decoration: const InputDecoration(labelText: 'Max Staff (0=Unlimited)'),
+                            decoration: const InputDecoration(
+                              labelText: 'Max Staff (0=Unlimited)',
+                            ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Required' : null,
                           ),
@@ -137,7 +156,9 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _maxCampusesController,
-                            decoration: const InputDecoration(labelText: 'Max Campuses'),
+                            decoration: const InputDecoration(
+                              labelText: 'Max Campuses',
+                            ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Required' : null,
                           ),
@@ -151,7 +172,13 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
                       onChanged: (v) => setState(() => _isActive = v),
                     ),
                     const Divider(height: 32),
-                    const Text('Features', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text(
+                      'Features',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -166,18 +193,26 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.add_circle, color: Colors.deepPurple),
+                          icon: const Icon(
+                            Icons.add_circle,
+                            color: Colors.deepPurple,
+                          ),
                           onPressed: _addFeature,
-                        )
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
-                      children: _features.map((f) => Chip(
-                        label: Text(f),
-                        onDeleted: () => setState(() => _features.remove(f)),
-                      )).toList(),
+                      children: _features
+                          .map(
+                            (f) => Chip(
+                              label: Text(f),
+                              onDeleted: () =>
+                                  setState(() => _features.remove(f)),
+                            ),
+                          )
+                          .toList(),
                     ),
                     const SizedBox(height: 40),
                     SizedBox(
@@ -186,7 +221,9 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
                         onPressed: _save,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('Save Package'),
                       ),

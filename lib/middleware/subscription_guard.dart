@@ -25,7 +25,8 @@ class SubscriptionGuard extends StatelessWidget {
           return child;
         }
 
-        if (subProvider.isFullyLocked || (requireActive && subProvider.isExpired)) {
+        if (subProvider.isFullyLocked ||
+            (requireActive && subProvider.isExpired)) {
           return Scaffold(
             appBar: AppBar(title: const Text('Access Denied')),
             body: Center(
@@ -39,7 +40,9 @@ class SubscriptionGuard extends StatelessWidget {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
-                  const Text('Please renew your subscription to continue using SalarySoft.'),
+                  const Text(
+                    'Please renew your subscription to continue using SalarySoft.',
+                  ),
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () {
@@ -57,17 +60,26 @@ class SubscriptionGuard extends StatelessWidget {
           children: [
             if (subProvider.isInGracePeriod && !requireActive)
               Container(
-                color: Colors.orange.withValues(alpha: 0.9),
+                color: Colors.orange.withOpacity(0.9),
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: Colors.white),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.white,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Your subscription expired. You are in the grace period. Please renew to avoid access loss.',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

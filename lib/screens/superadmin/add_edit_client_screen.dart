@@ -16,7 +16,7 @@ class AddEditClientScreen extends StatefulWidget {
 class _AddEditClientScreenState extends State<AddEditClientScreen> {
   final _formKey = GlobalKey<FormState>();
   final SubscriptionService _service = SubscriptionService();
-  
+
   late TextEditingController _instituteNameController;
   late TextEditingController _ownerNameController;
   late TextEditingController _phoneController;
@@ -30,11 +30,17 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
   @override
   void initState() {
     super.initState();
-    _instituteNameController = TextEditingController(text: widget.client?.instituteName ?? '');
-    _ownerNameController = TextEditingController(text: widget.client?.ownerName ?? '');
+    _instituteNameController = TextEditingController(
+      text: widget.client?.instituteName ?? '',
+    );
+    _ownerNameController = TextEditingController(
+      text: widget.client?.ownerName ?? '',
+    );
     _phoneController = TextEditingController(text: widget.client?.phone ?? '');
     _emailController = TextEditingController(text: widget.client?.email ?? '');
-    _addressController = TextEditingController(text: widget.client?.address ?? '');
+    _addressController = TextEditingController(
+      text: widget.client?.address ?? '',
+    );
     _passwordController = TextEditingController();
     _status = widget.client?.status ?? 'active';
     _currency = widget.client?.currency ?? 'PKR';
@@ -56,7 +62,7 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
 
     setState(() => _isLoading = true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     try {
       final clientData = Client(
         id: widget.client?.id ?? '',
@@ -67,21 +73,29 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
         address: _addressController.text.trim(),
         status: _status,
         createdAt: widget.client?.createdAt ?? DateTime.now(),
-        createdBy: widget.client?.createdBy ?? authProvider.currentUser?.id ?? 'system',
+        createdBy:
+            widget.client?.createdBy ??
+            authProvider.currentUser?.id ??
+            'system',
         currency: _currency,
       );
 
       if (widget.client == null) {
-        await _service.addClient(clientData, password: _passwordController.text);
+        await _service.addClient(
+          clientData,
+          password: _passwordController.text,
+        );
       } else {
         await _service.updateClient(widget.client!.id, clientData);
       }
-      
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       debugPrint('Error saving client: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -104,13 +118,17 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                   children: [
                     TextFormField(
                       controller: _instituteNameController,
-                      decoration: const InputDecoration(labelText: 'Institute Name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Institute Name',
+                      ),
                       validator: (v) => v!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _ownerNameController,
-                      decoration: const InputDecoration(labelText: 'Owner Name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Owner Name',
+                      ),
                       validator: (v) => v!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 16),
@@ -136,9 +154,12 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                     if (widget.client == null) ...[
                       TextFormField(
                         controller: _passwordController,
-                        decoration: const InputDecoration(labelText: 'Login Password'),
+                        decoration: const InputDecoration(
+                          labelText: 'Login Password',
+                        ),
                         obscureText: true,
-                        validator: (v) => v!.isEmpty ? 'Required for new clients' : null,
+                        validator: (v) =>
+                            v!.isEmpty ? 'Required for new clients' : null,
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -147,7 +168,10 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                       decoration: const InputDecoration(labelText: 'Currency'),
                       items: const [
                         DropdownMenuItem(value: 'PKR', child: Text('PKR (Rs)')),
-                        DropdownMenuItem(value: 'USD', child: Text('USD (\$ )')),
+                        DropdownMenuItem(
+                          value: 'USD',
+                          child: Text('USD (\$ )'),
+                        ),
                         DropdownMenuItem(value: 'EUR', child: Text('EUR (€)')),
                         DropdownMenuItem(value: 'GBP', child: Text('GBP (£)')),
                       ],
@@ -158,8 +182,14 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
-                        DropdownMenuItem(value: 'active', child: Text('Active')),
-                        DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
+                        DropdownMenuItem(
+                          value: 'active',
+                          child: Text('Active'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'suspended',
+                          child: Text('Suspended'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _status = v!),
                     ),
