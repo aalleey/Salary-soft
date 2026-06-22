@@ -60,7 +60,10 @@ class SuperAdminDashboardScreen extends StatelessWidget {
                   'Manage institutes',
                   Icons.business,
                   Colors.blue,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ClientsScreen())),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ClientsScreen()),
+                  ),
                 ),
                 _buildActionCard(
                   context,
@@ -68,7 +71,10 @@ class SuperAdminDashboardScreen extends StatelessWidget {
                   'Subscription plans',
                   Icons.local_offer,
                   Colors.green,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PackagesScreen())),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PackagesScreen()),
+                  ),
                 ),
                 _buildActionCard(
                   context,
@@ -76,7 +82,12 @@ class SuperAdminDashboardScreen extends StatelessWidget {
                   'Manage access',
                   Icons.card_membership,
                   Colors.purple,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsScreen())),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SubscriptionsScreen(),
+                    ),
+                  ),
                 ),
                 _buildActionCard(
                   context,
@@ -84,7 +95,10 @@ class SuperAdminDashboardScreen extends StatelessWidget {
                   'Record & view',
                   Icons.payments,
                   Colors.orange,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentsScreen())),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+                  ),
                 ),
                 _buildActionCard(
                   context,
@@ -92,7 +106,10 @@ class SuperAdminDashboardScreen extends StatelessWidget {
                   'PDF Invoices',
                   Icons.receipt_long,
                   Colors.teal,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InvoicesScreen())),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const InvoicesScreen()),
+                  ),
                 ),
                 _buildActionCard(
                   context,
@@ -100,7 +117,10 @@ class SuperAdminDashboardScreen extends StatelessWidget {
                   'System tracking',
                   Icons.security,
                   Colors.red,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuditLogsScreen())),
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AuditLogsScreen()),
+                  ),
                 ),
               ],
             ),
@@ -122,39 +142,39 @@ class SuperAdminDashboardScreen extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 32),
             ),
-            child: Icon(icon, color: color, size: 32),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.7),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

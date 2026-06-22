@@ -45,7 +45,14 @@ class PdfInvoiceGenerator {
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('SALARY SOFT', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.deepPurple)),
+            pw.Text(
+              'SALARY SOFT',
+              style: pw.TextStyle(
+                fontSize: 24,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.deepPurple,
+              ),
+            ),
             pw.Text('SaaS Billing Department'),
             pw.Text('support@salarysoft.com'),
           ],
@@ -53,11 +60,25 @@ class PdfInvoiceGenerator {
         pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            pw.Text('INVOICE', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
-            pw.Text('#${invoice.invoiceNumber}', style: const pw.TextStyle(fontSize: 16)),
+            pw.Text(
+              'INVOICE',
+              style: pw.TextStyle(
+                fontSize: 24,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.grey700,
+              ),
+            ),
+            pw.Text(
+              '#${invoice.invoiceNumber}',
+              style: const pw.TextStyle(fontSize: 16),
+            ),
             pw.SizedBox(height: 8),
-            pw.Text('Date: ${DateFormat('MMM dd, yyyy').format(invoice.issueDate)}'),
-            pw.Text('Due Date: ${DateFormat('MMM dd, yyyy').format(invoice.dueDate)}'),
+            pw.Text(
+              'Date: ${DateFormat('MMM dd, yyyy').format(invoice.issueDate)}',
+            ),
+            pw.Text(
+              'Due Date: ${DateFormat('MMM dd, yyyy').format(invoice.dueDate)}',
+            ),
           ],
         ),
       ],
@@ -68,9 +89,18 @@ class PdfInvoiceGenerator {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text('BILL TO:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
+        pw.Text(
+          'BILL TO:',
+          style: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.grey600,
+          ),
+        ),
         pw.SizedBox(height: 8),
-        pw.Text(client.instituteName, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16)),
+        pw.Text(
+          client.instituteName,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16),
+        ),
         pw.Text('Attn: ${client.ownerName}'),
         if (client.address.isNotEmpty) pw.Text(client.address),
         pw.Text('Phone: ${client.phone}'),
@@ -89,7 +119,10 @@ class PdfInvoiceGenerator {
           '${client.currency} ${invoice.amount.toStringAsFixed(2)}',
         ],
       ],
-      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+      headerStyle: pw.TextStyle(
+        fontWeight: pw.FontWeight.bold,
+        color: PdfColors.white,
+      ),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.deepPurple),
       cellHeight: 40,
       cellAlignments: {
@@ -112,16 +145,33 @@ class PdfInvoiceGenerator {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Subtotal:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Text('${client.currency} ${invoice.amount.toStringAsFixed(2)}'),
+                  pw.Text(
+                    'Subtotal:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.Text(
+                    '${client.currency} ${invoice.amount.toStringAsFixed(2)}',
+                  ),
                 ],
               ),
               pw.Divider(),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Total Due:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
-                  pw.Text('${client.currency} ${invoice.amount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                  pw.Text(
+                    'Total Due:',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  pw.Text(
+                    '${client.currency} ${invoice.amount.toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -139,9 +189,15 @@ class PdfInvoiceGenerator {
         pw.SizedBox(height: 8),
         pw.Text(
           'Thank you for your business!',
-          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.deepPurple),
+          style: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.deepPurple,
+          ),
         ),
-        pw.Text('Please make payment by the due date to avoid service interruption.', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+        pw.Text(
+          'Please make payment by the due date to avoid service interruption.',
+          style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+        ),
       ],
     );
   }
