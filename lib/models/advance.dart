@@ -1,5 +1,6 @@
 class Advance {
   final String id;
+  final String? clientId; // The client this advance belongs to
   final String staffId;
   final String staffName;
   final double advanceAmount;
@@ -12,6 +13,7 @@ class Advance {
 
   Advance({
     required this.id,
+    this.clientId,
     required this.staffId,
     required this.staffName,
     required this.advanceAmount,
@@ -45,6 +47,7 @@ class Advance {
 
     return Advance(
       id: documentId,
+      clientId: data['client_id'],
       staffId: data['staff_id'] ?? '',
       staffName: data['staff_name'] ?? '',
       advanceAmount: (data['advance_amount'] as num?)?.toDouble() ?? 0.0,
@@ -59,6 +62,7 @@ class Advance {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'client_id': clientId,
       'staff_id': staffId,
       'staff_name': staffName,
       'advance_amount': advanceAmount,

@@ -1,46 +1,36 @@
 {
   "project_info": {
-    "project_number": "915874825664",
-    "firebase_url": "https://salary-31ac6-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "salary-31ac6",
-    "storage_bucket": "salary-31ac6.firebasestorage.app"
+    "project_number": "1073374832398",
+    "project_id": "salary-290ff",
+    "storage_bucket": "salary-290ff.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:915874825664:android:65bc72bf520f06b3447425",
-        "android_client_info": {
-          "package_name": "com.example.salary"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDRhRM5K_6Sy-qERyrtBjq9DHdc4f_BKCQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:915874825664:android:b705cb39b8b0bff9447425",
+        "mobilesdk_app_id": "1:1073374832398:android:cfe5dfeab178841089995f",
         "android_client_info": {
           "package_name": "com.example.salary_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1073374832398-uehokt18qfptn05cbh2vfqddcnpqvqlb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDRhRM5K_6Sy-qERyrtBjq9DHdc4f_BKCQ"
+          "current_key": "AIzaSyB9zLmsBbzAX41V0DL8TRhVcm3OI8t7OQw"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1073374832398-uehokt18qfptn05cbh2vfqddcnpqvqlb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

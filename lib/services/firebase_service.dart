@@ -25,12 +25,18 @@ class FirebaseService {
     _currentAppUser = user;
   }
 
-  /// Applies Role-Based Access Control filtering to any campus-based query.
+  /// Applies Role-Based Access Control and Client isolation filtering.
   Query _applyRbacFilter(Query query, String? requestedCampus) {
     if (_currentAppUser == null) return query; // Fallback or unauthenticated
     
     final role = roleFromString(_currentAppUser!.role);
     final campuses = _currentAppUser!.assignedCampuses;
+    final clientId = _currentAppUser!.clientId;
+
+    // Isolate data by client_id if the user belongs to a specific client
+    if (clientId != null && clientId.isNotEmpty) {
+      query = query.where('client_id', isEqualTo: clientId);
+    }
 
     if (campuses.isNotEmpty) {
       // Both Admins and Super Admins with assigned campuses are restricted to those campuses

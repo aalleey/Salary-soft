@@ -1,5 +1,6 @@
 class User {
   final String id;
+  final String? clientId; // The client this user belongs to
   final String username;
   final String role;
   final List<String> assignedCampuses;
@@ -7,6 +8,7 @@ class User {
 
   User({
     required this.id,
+    this.clientId,
     required this.username,
     required this.role,
     required this.assignedCampuses,
@@ -36,6 +38,7 @@ class User {
 
     return User(
       id: documentId,
+      clientId: data['client_id'],
       username: data['username'] ?? '',
       role: data['role'] ?? 'admin',
       assignedCampuses: campuses,
@@ -45,6 +48,7 @@ class User {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'client_id': clientId,
       'username': username, 
       'role': role, 
       'assigned_campuses': assignedCampuses,
@@ -56,6 +60,7 @@ class User {
   Map<String, dynamic> toJson() {
     return {
       'id': id, 
+      'clientId': clientId,
       'username': username, 
       'role': role, 
       'assignedCampuses': assignedCampuses,
@@ -81,6 +86,7 @@ class User {
 
     return User(
       id: json['id'] ?? '',
+      clientId: json['clientId'],
       username: json['username'] ?? '',
       role: json['role'] ?? 'admin',
       assignedCampuses: campuses,

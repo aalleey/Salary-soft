@@ -51,12 +51,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDRhRM5K_6Sy-qERyrtBjq9DHdc4f_BKCQ',
-    appId: '1:915874825664:android:b705cb39b8b0bff9447425',
-    messagingSenderId: '915874825664',
-    projectId: 'salary-31ac6',
-    databaseURL: 'https://salary-31ac6-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'salary-31ac6.firebasestorage.app',
+    apiKey: 'AIzaSyB9zLmsBbzAX41V0DL8TRhVcm3OI8t7OQw',
+    appId: '1:1073374832398:android:cfe5dfeab178841089995f',
+    messagingSenderId: '1073374832398',
+    projectId: 'salary-290ff',
+    storageBucket: 'salary-290ff.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAnUaO0jTmON5upOAJsop_-4rUbVfu867s',

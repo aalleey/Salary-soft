@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 class Salary {
   final String id;
+  final String? clientId; // The client this salary belongs to
   final String staffId;
   final String staffName;
   final int month;
@@ -75,6 +76,7 @@ class Salary {
 
   Salary({
     required this.id,
+    this.clientId,
     required this.staffId,
     required this.staffName,
     required this.month,
@@ -98,6 +100,7 @@ class Salary {
   factory Salary.fromFirestore(Map<String, dynamic> data, String documentId) {
     return Salary(
       id: documentId,
+      clientId: data['client_id'],
       staffId: data['staff_id'] ?? '',
       staffName: data['staff_name'] ?? '',
       month: data['month'] ?? 0,
@@ -147,6 +150,7 @@ class Salary {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'client_id': clientId,
       'staff_id': staffId,
       'staff_name': staffName,
       'month': month,

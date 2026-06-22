@@ -5,6 +5,7 @@ import '../auth/models/app_user.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
 import 'employee_dashboard_screen.dart';
+import 'superadmin/superadmin_dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -62,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen>
       final role = authProvider.userRole ?? UserRole.employee;
       switch (role) {
         case UserRole.superUser:
-          destination = const DashboardScreen();
+          destination = const SuperAdminDashboardScreen();
           break;
         case UserRole.admin:
           destination = const DashboardScreen();

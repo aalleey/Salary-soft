@@ -33,6 +33,7 @@ class AuthService {
           debugPrint('AuthService: Staff login successful: ${staff.name}');
           _currentUser = User(
             id: staff.id,
+            clientId: staff.clientId,
             username: staff.name,
             role: 'employee',
             assignedCampuses: [staff.campus],

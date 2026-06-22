@@ -27,6 +27,7 @@ class AuthProvider with ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   String? get error => _error;
   User? get currentUser => _authService.currentUser;
+  String? get clientId => _authService.currentUser?.clientId;
   String? get activeCampus => _activeCampus;
 
   void setActiveCampus(String? campus) {

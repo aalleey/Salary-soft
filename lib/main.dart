@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/subscription_provider.dart';
 import 'config/theme.dart';
 import 'screens/splash_screen.dart';
 
@@ -32,6 +33,10 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, SubscriptionProvider>(
+          create: (context) => SubscriptionProvider(context.read<AuthProvider>()),
+          update: (context, auth, previous) => previous ?? SubscriptionProvider(auth),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

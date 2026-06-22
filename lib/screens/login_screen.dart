@@ -6,6 +6,7 @@ import '../auth/models/app_user.dart';
 import '../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'employee_dashboard_screen.dart';
+import 'superadmin/superadmin_dashboard_screen.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -129,8 +130,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     switch (role) {
       case UserRole.superUser:
-        destination =
-            const DashboardScreen(); // Global dashboard handles SuperUser too
+        destination = const SuperAdminDashboardScreen();
         break;
       case UserRole.admin:
         destination = const DashboardScreen();
@@ -442,10 +442,12 @@ class _LoginScreenState extends State<LoginScreen>
                   icon: Icons.lock_outline_rounded,
                   isPassword: true,
                   validator: (v) {
-                    if (v == null || v.isEmpty)
+                    if (v == null || v.isEmpty) {
                       return 'Please enter your password';
-                    if (v.length < 6)
+                    }
+                    if (v.length < 6) {
                       return 'Password must be at least 6 characters';
+                    }
                     return null;
                   },
                 ),

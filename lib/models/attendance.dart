@@ -1,5 +1,6 @@
 class Attendance {
   final String id;
+  final String? clientId; // The client this attendance belongs to
   final String staffId;
   final String staffName;
   final int month;
@@ -10,6 +11,7 @@ class Attendance {
 
   Attendance({
     required this.id,
+    this.clientId,
     required this.staffId,
     required this.staffName,
     required this.month,
@@ -25,6 +27,7 @@ class Attendance {
   ) {
     return Attendance(
       id: documentId,
+      clientId: data['client_id'],
       staffId: data['staff_id'] ?? '',
       staffName: data['staff_name'] ?? '',
       month: data['month'] ?? 0,
@@ -37,6 +40,7 @@ class Attendance {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'client_id': clientId,
       'staff_id': staffId,
       'staff_name': staffName,
       'month': month,

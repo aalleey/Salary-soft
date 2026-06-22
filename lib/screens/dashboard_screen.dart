@@ -18,6 +18,7 @@ import '../shared/widgets/stat_card_widget.dart';
 import '../shared/widgets/glass_card_widget.dart';
 import 'attendance_report_screen.dart';
 import 'add_edit_user_screen.dart';
+import '../middleware/subscription_guard.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -146,7 +147,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
+    return SubscriptionGuard(
+      requireActive: false,
+      child: Scaffold(
       backgroundColor: isDark
           ? const Color(0xFF121212)
           : const Color(0xFFF5F7FA),
@@ -219,6 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
       floatingActionButton: _buildQuickActionFAB(),
+    ),
     );
   }
 
@@ -346,7 +350,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             radius: 24,
                             backgroundColor: Colors.white,
                             child: Text(
-                              (user?.username?[0] ?? 'A').toUpperCase(),
+                              (user?.username?.isNotEmpty == true ? user!.username![0] : 'A').toUpperCase(),
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,

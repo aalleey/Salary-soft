@@ -1,5 +1,6 @@
 class Staff {
   final String id;
+  final String? clientId; // The client this staff belongs to
   final String name;
   final double salary;
   final String phone;
@@ -7,7 +8,7 @@ class Staff {
   final bool isActive;
   final String? password;
   
-  // New Expanded Fields
+  // Expanded Fields
   final String? fatherHusbandName;
   final String? cnic;
   final String? address;
@@ -21,6 +22,7 @@ class Staff {
 
   Staff({
     required this.id,
+    this.clientId,
     required this.name,
     required this.salary,
     required this.phone,
@@ -42,6 +44,7 @@ class Staff {
   factory Staff.fromFirestore(Map<String, dynamic> data, String documentId) {
     return Staff(
       id: documentId,
+      clientId: data['client_id'],
       name: data['name'] ?? '',
       salary: (data['salary'] as num?)?.toDouble() ?? 0.0,
       phone: data['phone'] ?? '',
@@ -63,6 +66,7 @@ class Staff {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'client_id': clientId,
       'name': name,
       'salary': salary,
       'phone': phone,
