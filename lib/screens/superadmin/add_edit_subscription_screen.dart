@@ -11,13 +11,14 @@ class AddEditSubscriptionScreen extends StatefulWidget {
   const AddEditSubscriptionScreen({super.key, this.subscription});
 
   @override
-  State<AddEditSubscriptionScreen> createState() => _AddEditSubscriptionScreenState();
+  State<AddEditSubscriptionScreen> createState() =>
+      _AddEditSubscriptionScreenState();
 }
 
 class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
   final _formKey = GlobalKey<FormState>();
   final SubscriptionService _service = SubscriptionService();
-  
+
   bool _isLoading = true;
   List<Client> _clients = [];
   List<Package> _packages = [];
@@ -48,15 +49,17 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
       setState(() {
         _clients = clients;
         _packages = packages;
-        
+
         // Ensure selected values still exist in the fetched lists
-        if (_selectedClientId != null && !_clients.any((c) => c.id == _selectedClientId)) {
+        if (_selectedClientId != null &&
+            !_clients.any((c) => c.id == _selectedClientId)) {
           _selectedClientId = null;
         }
-        if (_selectedPackageId != null && !_packages.any((p) => p.id == _selectedPackageId)) {
+        if (_selectedPackageId != null &&
+            !_packages.any((p) => p.id == _selectedPackageId)) {
           _selectedPackageId = null;
         }
-        
+
         _isLoading = false;
       });
     } catch (e) {
@@ -89,7 +92,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedClientId == null || _selectedPackageId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a Client and a Package')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a Client and a Package')),
+      );
       return;
     }
 
@@ -113,11 +118,13 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
       } else {
         await _service.updateSubscription(widget.subscription!.id, sub);
       }
-      
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -128,7 +135,11 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.subscription == null ? 'New Subscription' : 'Edit Subscription'),
+        title: Text(
+          widget.subscription == null
+              ? 'New Subscription'
+              : 'Edit Subscription',
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -141,11 +152,19 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: _selectedClientId,
-                      decoration: const InputDecoration(labelText: 'Client (Institute)'),
-                      items: _clients.map((c) => DropdownMenuItem(
-                        value: c.id,
-                        child: Text('${c.instituteName} (${c.ownerName})'),
-                      )).toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Client (Institute)',
+                      ),
+                      items: _clients
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(
+                                '${c.instituteName} (${c.ownerName})',
+                              ),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (v) => setState(() => _selectedClientId = v),
                       validator: (v) => v == null ? 'Required' : null,
                     ),
@@ -153,10 +172,14 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                     DropdownButtonFormField<String>(
                       initialValue: _selectedPackageId,
                       decoration: const InputDecoration(labelText: 'Package'),
-                      items: _packages.map((p) => DropdownMenuItem(
-                        value: p.id,
-                        child: Text('${p.name} - ${p.price}'),
-                      )).toList(),
+                      items: _packages
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text('${p.name} - ${p.price}'),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (v) => setState(() => _selectedPackageId = v),
                       validator: (v) => v == null ? 'Required' : null,
                     ),
@@ -165,27 +188,46 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
-                        DropdownMenuItem(value: 'active', child: Text('Active')),
-                        DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
-                        DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
+                        DropdownMenuItem(
+                          value: 'active',
+                          child: Text('Active'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'suspended',
+                          child: Text('Suspended'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'cancelled',
+                          child: Text('Cancelled'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _status = v!),
                     ),
                     const SizedBox(height: 24),
                     ListTile(
                       title: const Text('Start Date'),
-                      subtitle: Text(DateFormat('MMM dd, yyyy').format(_startDate)),
+                      subtitle: Text(
+                        DateFormat('MMM dd, yyyy').format(_startDate),
+                      ),
                       trailing: const Icon(Icons.calendar_today),
                       onTap: () => _selectDate(context, true),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     ListTile(
                       title: const Text('End Date (Expiry)'),
-                      subtitle: Text(DateFormat('MMM dd, yyyy').format(_endDate)),
+                      subtitle: Text(
+                        DateFormat('MMM dd, yyyy').format(_endDate),
+                      ),
                       trailing: const Icon(Icons.calendar_today),
                       onTap: () => _selectDate(context, false),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
                     ),
                     const SizedBox(height: 40),
                     SizedBox(
@@ -194,7 +236,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                         onPressed: _save,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('Save Subscription'),
                       ),

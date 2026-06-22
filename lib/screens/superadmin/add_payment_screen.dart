@@ -17,7 +17,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   final _formKey = GlobalKey<FormState>();
   final PaymentService _paymentService = PaymentService();
   final SubscriptionService _subscriptionService = SubscriptionService();
-  
+
   bool _isLoading = true;
   List<Client> _clients = [];
 
@@ -63,18 +63,21 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedClientId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a Client')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a Client')));
       return;
     }
 
     setState(() => _isLoading = true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     try {
       final payment = Payment(
         id: '',
         clientId: _selectedClientId!,
-        subscriptionId: '', // Ideally linked, but manual payments might be loose
+        subscriptionId:
+            '', // Ideally linked, but manual payments might be loose
         amount: double.tryParse(_amountController.text) ?? 0.0,
         paymentMethod: _paymentMethod,
         transactionId: _referenceController.text.trim(),
@@ -88,11 +91,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
       );
 
       await _paymentService.recordPayment(payment);
-      
+
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -114,11 +119,19 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: _selectedClientId,
-                      decoration: const InputDecoration(labelText: 'Client (Institute)'),
-                      items: _clients.map((c) => DropdownMenuItem(
-                        value: c.id,
-                        child: Text('${c.instituteName} (${c.ownerName})'),
-                      )).toList(),
+                      decoration: const InputDecoration(
+                        labelText: 'Client (Institute)',
+                      ),
+                      items: _clients
+                          .map(
+                            (c) => DropdownMenuItem(
+                              value: c.id,
+                              child: Text(
+                                '${c.instituteName} (${c.ownerName})',
+                              ),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (v) {
                         setState(() {
                           _selectedClientId = v;
@@ -136,7 +149,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                           flex: 2,
                           child: TextFormField(
                             controller: _amountController,
-                            decoration: const InputDecoration(labelText: 'Amount'),
+                            decoration: const InputDecoration(
+                              labelText: 'Amount',
+                            ),
                             keyboardType: TextInputType.number,
                             validator: (v) => v!.isEmpty ? 'Required' : null,
                           ),
@@ -146,12 +161,26 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                           flex: 1,
                           child: DropdownButtonFormField<String>(
                             initialValue: _currency,
-                            decoration: const InputDecoration(labelText: 'Currency'),
+                            decoration: const InputDecoration(
+                              labelText: 'Currency',
+                            ),
                             items: const [
-                              DropdownMenuItem(value: 'PKR', child: Text('PKR')),
-                              DropdownMenuItem(value: 'USD', child: Text('USD')),
-                              DropdownMenuItem(value: 'EUR', child: Text('EUR')),
-                              DropdownMenuItem(value: 'GBP', child: Text('GBP')),
+                              DropdownMenuItem(
+                                value: 'PKR',
+                                child: Text('PKR'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'USD',
+                                child: Text('USD'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'EUR',
+                                child: Text('EUR'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'GBP',
+                                child: Text('GBP'),
+                              ),
                             ],
                             onChanged: (v) => setState(() => _currency = v!),
                           ),
@@ -161,29 +190,54 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _paymentMethod,
-                      decoration: const InputDecoration(labelText: 'Payment Method'),
+                      decoration: const InputDecoration(
+                        labelText: 'Payment Method',
+                      ),
                       items: const [
                         DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                        DropdownMenuItem(value: 'bank_transfer', child: Text('Bank Transfer')),
-                        DropdownMenuItem(value: 'jazzcash', child: Text('JazzCash')),
-                        DropdownMenuItem(value: 'easypaisa', child: Text('EasyPaisa')),
-                        DropdownMenuItem(value: 'card', child: Text('Credit/Debit Card')),
+                        DropdownMenuItem(
+                          value: 'bank_transfer',
+                          child: Text('Bank Transfer'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'jazzcash',
+                          child: Text('JazzCash'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'easypaisa',
+                          child: Text('EasyPaisa'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'card',
+                          child: Text('Credit/Debit Card'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _paymentMethod = v!),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _referenceController,
-                      decoration: const InputDecoration(labelText: 'Reference ID / Trx ID'),
+                      decoration: const InputDecoration(
+                        labelText: 'Reference ID / Trx ID',
+                      ),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
-                        DropdownMenuItem(value: 'completed', child: Text('Completed')),
-                        DropdownMenuItem(value: 'pending', child: Text('Pending')),
-                        DropdownMenuItem(value: 'failed', child: Text('Failed')),
+                        DropdownMenuItem(
+                          value: 'completed',
+                          child: Text('Completed'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'pending',
+                          child: Text('Pending'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'failed',
+                          child: Text('Failed'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _status = v!),
                     ),
@@ -200,7 +254,9 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                         onPressed: _save,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('Record Payment'),
                       ),
