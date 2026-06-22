@@ -60,7 +60,7 @@ class SubscriptionGuard extends StatelessWidget {
           children: [
             if (subProvider.isInGracePeriod && !requireActive)
               Container(
-                color: Colors.orange.withOpacity(0.9),
+                color: Colors.orange.withValues(alpha: 0.9),
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
                   vertical: 8,

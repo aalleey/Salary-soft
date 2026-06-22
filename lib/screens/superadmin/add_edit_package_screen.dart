@@ -16,13 +16,11 @@ class _AddEditPackageScreenState extends State<AddEditPackageScreen> {
   final SubscriptionService _service = SubscriptionService();
 
   late TextEditingController _nameController;
-  late TextEditingController _descriptionController;
   late TextEditingController _priceController;
   late TextEditingController _maxStaffController;
   late TextEditingController _maxCampusesController;
   late TextEditingController _featureController;
 
-  final String _billingCycle = 'monthly';
   bool _isActive = true;
   List<String> _features = [];
   bool _isLoading = false;

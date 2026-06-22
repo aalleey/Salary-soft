@@ -77,8 +77,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
                       style: const TextStyle(fontSize: 10),
                     ),
                     backgroundColor: client.status == 'active'
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.red.withOpacity(0.2),
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.red.withValues(alpha: 0.2),
                   ),
                   onTap: () async {
                     final result = await Navigator.push(
