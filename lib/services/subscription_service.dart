@@ -1,23 +1,29 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/client.dart';
 import '../models/package.dart';
 import '../models/subscription.dart';
-import 'api_service.dart';
 
 class SubscriptionService {
   static final SubscriptionService _instance = SubscriptionService._internal();
   factory SubscriptionService() => _instance;
   SubscriptionService._internal();
 
-  final ApiService _api = ApiService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Map<String, dynamic> _withDocId(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    data['id'] = doc.id;
+    data['_id'] = doc.id;
+    return data;
+  }
 
   // --- Clients ---
 
   Future<List<Client>> getClients() async {
     try {
-      final response = await _api.get('clients');
-      final List<dynamic> data = response;
-      final list = data.map((json) => Client.fromJson(json)).toList();
+      final snapshot = await _firestore.collection('clients').get();
+      final list = snapshot.docs.map((doc) => Client.fromJson(_withDocId(doc))).toList();
       list.sort((a, b) => a.instituteName.toLowerCase().compareTo(b.instituteName.toLowerCase()));
       return list;
     } catch (e, st) {
@@ -29,8 +35,9 @@ class SubscriptionService {
 
   Future<Client?> getClient(String id) async {
     try {
-      final response = await _api.get('clients/$id');
-      return Client.fromJson(response);
+      final doc = await _firestore.collection('clients').doc(id).get();
+      if (!doc.exists) return null;
+      return Client.fromJson(_withDocId(doc));
     } catch (e) {
       debugPrint('Error getting client: $e');
       return null;
@@ -41,10 +48,10 @@ class SubscriptionService {
     try {
       final body = client.toJson();
       if (password != null && password.isNotEmpty) {
-        body['password'] = password;
+        body['password'] = password; // Note: In production, do not store plain text passwords in Firestore. Use Firebase Auth.
       }
-      final response = await _api.post('clients', body: body);
-      return response['_id'] ?? response['id'];
+      final docRef = await _firestore.collection('clients').add(body);
+      return docRef.id;
     } catch (e) {
       debugPrint('Error adding client: $e');
       rethrow;
@@ -53,7 +60,7 @@ class SubscriptionService {
 
   Future<void> updateClient(String id, Client client) async {
     try {
-      await _api.put('clients/$id', body: client.toJson());
+      await _firestore.collection('clients').doc(id).update(client.toJson());
     } catch (e) {
       debugPrint('Error updating client: $e');
       rethrow;
@@ -62,7 +69,7 @@ class SubscriptionService {
 
   Future<void> deleteClient(String id) async {
     try {
-      await _api.delete('clients/$id');
+      await _firestore.collection('clients').doc(id).delete();
     } catch (e) {
       debugPrint('Error deleting client: $e');
       rethrow;
@@ -73,9 +80,8 @@ class SubscriptionService {
 
   Future<List<Package>> getPackages() async {
     try {
-      final response = await _api.get('packages');
-      final List<dynamic> data = response;
-      final list = data.map((json) => Package.fromJson(json)).toList();
+      final snapshot = await _firestore.collection('packages').get();
+      final list = snapshot.docs.map((doc) => Package.fromJson(_withDocId(doc))).toList();
       list.sort((a, b) => a.price.compareTo(b.price));
       return list;
     } catch (e) {
@@ -86,8 +92,9 @@ class SubscriptionService {
 
   Future<Package?> getPackage(String id) async {
     try {
-      final response = await _api.get('packages/$id');
-      return Package.fromJson(response);
+      final doc = await _firestore.collection('packages').doc(id).get();
+      if (!doc.exists) return null;
+      return Package.fromJson(_withDocId(doc));
     } catch (e) {
       debugPrint('Error getting package: $e');
       return null;
@@ -96,8 +103,8 @@ class SubscriptionService {
 
   Future<String> addPackage(Package package) async {
     try {
-      final response = await _api.post('packages', body: package.toJson());
-      return response['_id'] ?? response['id'];
+      final docRef = await _firestore.collection('packages').add(package.toJson());
+      return docRef.id;
     } catch (e) {
       debugPrint('Error adding package: $e');
       rethrow;
@@ -106,7 +113,7 @@ class SubscriptionService {
 
   Future<void> updatePackage(String id, Package package) async {
     try {
-      await _api.put('packages/$id', body: package.toJson());
+      await _firestore.collection('packages').doc(id).update(package.toJson());
     } catch (e) {
       debugPrint('Error updating package: $e');
       rethrow;
@@ -117,10 +124,13 @@ class SubscriptionService {
 
   Future<Subscription?> getActiveSubscription(String clientId) async {
     try {
-      final response = await _api.get('subscriptions', queryParams: {'clientId': clientId, 'status': 'active'});
-      final List<dynamic> data = response;
-      if (data.isEmpty) return null;
-      final list = data.map((json) => Subscription.fromJson(json)).toList();
+      final snapshot = await _firestore.collection('subscriptions')
+          .where('clientId', isEqualTo: clientId)
+          .where('status', isEqualTo: 'active')
+          .get();
+          
+      if (snapshot.docs.isEmpty) return null;
+      final list = snapshot.docs.map((doc) => Subscription.fromJson(_withDocId(doc))).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list.first;
     } catch (e) {
@@ -131,9 +141,8 @@ class SubscriptionService {
 
   Future<List<Subscription>> getAllSubscriptions() async {
     try {
-      final response = await _api.get('subscriptions');
-      final List<dynamic> data = response;
-      return data.map((json) => Subscription.fromJson(json)).toList();
+      final snapshot = await _firestore.collection('subscriptions').get();
+      return snapshot.docs.map((doc) => Subscription.fromJson(_withDocId(doc))).toList();
     } catch (e) {
       debugPrint('Error getting all subscriptions: $e');
       return [];
@@ -142,8 +151,8 @@ class SubscriptionService {
 
   Future<String> addSubscription(Subscription sub) async {
     try {
-      final response = await _api.post('subscriptions', body: sub.toJson());
-      return response['_id'] ?? response['id'];
+      final docRef = await _firestore.collection('subscriptions').add(sub.toJson());
+      return docRef.id;
     } catch (e) {
       debugPrint('Error creating subscription: $e');
       rethrow;
@@ -152,7 +161,7 @@ class SubscriptionService {
 
   Future<void> updateSubscriptionStatus(String id, String status) async {
     try {
-      await _api.put('subscriptions/$id', body: {'status': status});
+      await _firestore.collection('subscriptions').doc(id).update({'status': status});
     } catch (e) {
       debugPrint('Error updating subscription status: $e');
       rethrow;
@@ -161,7 +170,7 @@ class SubscriptionService {
 
   Future<void> updateSubscription(String id, Subscription sub) async {
     try {
-      await _api.put('subscriptions/$id', body: sub.toJson());
+      await _firestore.collection('subscriptions').doc(id).update(sub.toJson());
     } catch (e) {
       debugPrint('Error updating subscription: $e');
       rethrow;

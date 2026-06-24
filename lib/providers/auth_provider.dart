@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
 import '../auth/models/app_user.dart';
+import '../services/firebase_service.dart';
 
 /// Central authentication state manager.
 ///
@@ -71,6 +72,7 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = await _authService.checkAuth();
         if (_isAuthenticated) {
           _initializeActiveCampus();
+          FirebaseService().setAppUser(currentUser);
         }
       }
     } catch (e) {
@@ -102,6 +104,7 @@ class AuthProvider with ChangeNotifier {
           'AuthProvider: login OK — role: ${currentUser?.role}',
         );
         _initializeActiveCampus();
+        FirebaseService().setAppUser(currentUser);
         await _handleRememberMe(username, rememberMe);
       } else {
         _error = 'Login failed. Please check your credentials.';
@@ -128,6 +131,7 @@ class AuthProvider with ChangeNotifier {
       await _authService.logout();
       _isAuthenticated = false;
       _activeCampus = null;
+      FirebaseService().setAppUser(null);
     } catch (e) {
       _error = e.toString();
     } finally {

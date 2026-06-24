@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class User {
   final String id;
   final String? clientId;
@@ -31,18 +33,36 @@ class User {
 
   // Parses user data directly from the Node.js API response
   factory User.fromJson(Map<String, dynamic> json) {
+    debugPrint('User.fromJson: json[\'permissions\'] value is "${json['permissions']}" with type: ${json['permissions']?.runtimeType}');
     List<String> perms = [];
     if (json['permissions'] != null) {
-      perms = List<String>.from(json['permissions']);
+      if (json['permissions'] is Map) {
+        final Map<dynamic, dynamic> map = json['permissions'];
+        map.forEach((key, value) {
+          if (value == true) {
+            perms.add(key.toString());
+          }
+        });
+      } else if (json['permissions'] is Iterable) {
+        perms = List<String>.from(json['permissions']);
+      }
+    }
+
+    String? resolvedCampusId = json['campusId'] ?? json['campus_id'];
+    if (resolvedCampusId == null && json['assigned_campuses'] is List) {
+      final List assigned = json['assigned_campuses'];
+      if (assigned.isNotEmpty) {
+        resolvedCampusId = resolvedCampusId ?? assigned.first.toString();
+      }
     }
 
     return User(
       id: json['_id'] ?? json['id'] ?? '',
-      clientId: json['clientId'],
-      campusId: json['campusId'],
-      username: json['name'] ?? '',
+      clientId: json['clientId'] ?? json['client_id'] ?? (json['instituteName'] != null ? (json['_id'] ?? json['id'] ?? '') : null),
+      campusId: resolvedCampusId,
+      username: json['username'] ?? json['name'] ?? json['ownerName'] ?? '',
       email: json['email'] ?? '',
-      role: json['role'] ?? 'staff',
+      role: json['role'] ?? (json['instituteName'] != null ? 'client_admin' : 'staff'),
       permissions: perms,
     );
   }

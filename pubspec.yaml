@@ -38,9 +38,10 @@ dependencies:
   # HTTP client for API calls (keeping for backward compatibility)
   http: ^1.1.0
   
-  # Removed Firebase dependencies as we moved to Node.js / MongoDB
-  # firebase_core, firebase_auth, cloud_firestore removed
-  
+  # Firebase dependencies
+  firebase_core: ^4.11.0
+  firebase_auth: ^6.5.4
+  cloud_firestore: ^6.6.0  
   # State management
   provider: ^6.1.1
   

@@ -1,18 +1,25 @@
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/invoice.dart';
-import 'api_service.dart';
 
 class InvoiceService {
   static final InvoiceService _instance = InvoiceService._internal();
   factory InvoiceService() => _instance;
   InvoiceService._internal();
 
-  final ApiService _api = ApiService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Map<String, dynamic> _withDocId(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    data['id'] = doc.id;
+    data['_id'] = doc.id;
+    return data;
+  }
 
   Future<String> createInvoice(Invoice invoice) async {
     try {
-      final response = await _api.post('invoices', body: invoice.toJson());
-      return response['_id'] ?? response['id'];
+      final docRef = await _firestore.collection('invoices').add(invoice.toJson());
+      return docRef.id;
     } catch (e) {
       debugPrint('Error creating invoice: $e');
       rethrow;
@@ -21,9 +28,10 @@ class InvoiceService {
 
   Future<List<Invoice>> getClientInvoices(String clientId) async {
     try {
-      final response = await _api.get('invoices', queryParams: {'clientId': clientId});
-      final List<dynamic> data = response;
-      return data.map((json) => Invoice.fromJson(json)).toList();
+      final snapshot = await _firestore.collection('invoices')
+          .where('clientId', isEqualTo: clientId)
+          .get();
+      return snapshot.docs.map((doc) => Invoice.fromJson(_withDocId(doc))).toList();
     } catch (e) {
       debugPrint('Error getting client invoices: $e');
       return [];
@@ -32,9 +40,8 @@ class InvoiceService {
 
   Future<List<Invoice>> getAllInvoices() async {
     try {
-      final response = await _api.get('invoices');
-      final List<dynamic> data = response;
-      return data.map((json) => Invoice.fromJson(json)).toList();
+      final snapshot = await _firestore.collection('invoices').get();
+      return snapshot.docs.map((doc) => Invoice.fromJson(_withDocId(doc))).toList();
     } catch (e) {
       debugPrint('Error getting all invoices: $e');
       return [];
@@ -44,8 +51,20 @@ class InvoiceService {
   Future<String> generateInvoiceNumber() async {
     final year = DateTime.now().year;
     try {
-      final response = await _api.get('invoices/next-number');
-      return response['invoiceNumber'] ?? 'INV-$year-0001';
+      // In Firestore, creating sequential numbers requires a counter document.
+      // We'll use a transaction to safely increment the counter.
+      final counterRef = _firestore.collection('counters').doc('invoices_$year');
+      final newCounter = await _firestore.runTransaction<int>((transaction) async {
+        final snapshot = await transaction.get(counterRef);
+        if (!snapshot.exists) {
+          transaction.set(counterRef, {'count': 1});
+          return 1;
+        }
+        final newCount = (snapshot.data()?['count'] ?? 0) + 1;
+        transaction.update(counterRef, {'count': newCount});
+        return newCount;
+      });
+      return 'INV-$year-${newCounter.toString().padLeft(4, '0')}';
     } catch (e) {
       debugPrint('Error generating invoice number: $e');
       return 'INV-$year-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
@@ -54,7 +73,7 @@ class InvoiceService {
 
   Future<void> updateInvoiceStatus(String invoiceId, String status) async {
     try {
-      await _api.put('invoices/$invoiceId', body: {'status': status});
+      await _firestore.collection('invoices').doc(invoiceId).update({'status': status});
     } catch (e) {
       debugPrint('Error updating invoice status: $e');
       rethrow;
