@@ -59,6 +59,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
         return 'super_admin';
       case 'admin':
       case 'superadmin':
+      case 'client_admin':
         return 'admin';
       case 'lower_admin':
       case 'campus_admin':
@@ -73,10 +74,21 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
     super.initState();
     _loadCampuses();
 
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final isAppOwner = auth.userRole == UserRole.superAdmin;
+
     if (isEditing) {
       _usernameController.text = widget.user!['username'] ?? '';
       _emailController.text = widget.user!['email'] ?? '';
       _selectedRole = _normalizeRole(widget.user!['role'] ?? 'admin');
+      
+      // Ensure selected role is valid according to permissions of logged-in user
+      if (!isAppOwner) {
+        _selectedRole = 'lower_admin';
+      } else if (_selectedRole == 'lower_admin') {
+        _selectedRole = 'admin';
+      }
+
       final assignedCampuses =
           widget.user!['assigned_campuses'] as List<dynamic>?;
       if (assignedCampuses != null && assignedCampuses.isNotEmpty) {
@@ -90,13 +102,23 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
       }
 
       if (widget.user!['permissions'] != null) {
-        final Map<String, dynamic> perms = widget.user!['permissions'];
-        perms.forEach((key, value) {
-          if (_permissions.containsKey(key)) {
-            _permissions[key] = value == true;
+        final perms = widget.user!['permissions'];
+        if (perms is Map) {
+          perms.forEach((key, value) {
+            if (_permissions.containsKey(key)) {
+              _permissions[key] = value == true;
+            }
+          });
+        } else if (perms is Iterable) {
+          for (final key in perms) {
+            if (_permissions.containsKey(key)) {
+              _permissions[key] = true;
+            }
           }
-        });
+        }
       }
+    } else {
+      _selectedRole = isAppOwner ? 'admin' : 'lower_admin';
     }
   }
 
@@ -128,7 +150,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     // Validate campus selection for admin
-    if (_selectedRole == 'admin' && _selectedCampuses.isEmpty) {
+    if ((_selectedRole == 'admin' || _selectedRole == 'lower_admin') && _selectedCampuses.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select at least one campus for the admin'),
@@ -391,10 +413,6 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                               child: Text('Super Admin (Client Owner)'),
                             ),
                           ];
-                          // Ensure selected role is valid
-                          if (_selectedRole == 'lower_admin') {
-                            _selectedRole = 'admin';
-                          }
                         } else {
                           roleItems = const [
                             DropdownMenuItem(
@@ -402,8 +420,6 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                               child: Text('Admin (Staff / Sub-admin)'),
                             ),
                           ];
-                          // Force role to lower_admin for client owners creating users
-                          _selectedRole = 'lower_admin';
                         }
 
                         return DropdownButtonFormField<String>(
@@ -430,7 +446,7 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _selectedRole == 'admin'
+                                (_selectedRole == 'admin' || _selectedRole == 'lower_admin')
                                     ? 'Assigned Campuses *'
                                     : 'Assigned Campuses (Leave empty for Master Admin)',
                                 style: const TextStyle(
@@ -496,8 +512,8 @@ class _AddEditUserScreenState extends State<AddEditUserScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Permissions Card (Only for admin)
-              if (_selectedRole == 'admin') ...[
+              // Permissions Card (Only for admin and lower_admin)
+              if (_selectedRole == 'admin' || _selectedRole == 'lower_admin') ...[
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(

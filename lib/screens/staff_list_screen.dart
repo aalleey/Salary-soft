@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/staff.dart';
+import '../models/campus.dart';
 import '../services/firebase_service.dart';
 import '../providers/auth_provider.dart';
 import 'add_edit_staff_screen.dart';
@@ -27,8 +28,9 @@ class _StaffListScreenState extends State<StaffListScreen> {
   final ScrollController _scrollController = ScrollController();
 
   // Campus Filter State
-  List<String> _campusNames = ['All'];
-  String _selectedCampus = 'All';
+  List<Campus> _campuses = [];
+  Map<String, String> _campusMap = {};
+  String _selectedCampusId = 'All';
   bool _isLoadingCampuses = false;
 
   @override
@@ -44,7 +46,8 @@ class _StaffListScreenState extends State<StaffListScreen> {
       final campuses = await _firebaseService.getCampuses();
       if (mounted) {
         setState(() {
-          _campusNames = ['All', ...campuses.map((c) => c.name)];
+          _campuses = campuses;
+          _campusMap = {for (var c in campuses) c.id: c.name};
           _isLoadingCampuses = false;
         });
       }
@@ -72,13 +75,13 @@ class _StaffListScreenState extends State<StaffListScreen> {
         _filteredStaff = _allStaff
             .where((s) => s.campus == activeCampus)
             .toList();
-      } else if (_selectedCampus == 'All') {
+      } else if (_selectedCampusId == 'All') {
         // Super admin with 'All' selected
         _filteredStaff = List.from(_allStaff);
       } else {
         // Super admin with specific campus selected
         _filteredStaff = _allStaff
-            .where((s) => s.campus == _selectedCampus)
+            .where((s) => s.campus == _selectedCampusId)
             .toList();
       }
     });
@@ -201,22 +204,15 @@ class _StaffListScreenState extends State<StaffListScreen> {
                     vertical: 12,
                   ),
                   child: Row(
-                    children: _campusNames.map((campus) {
-                      final isSelected = _selectedCampus == campus;
-                      return Padding(
+                    children: [
+                      Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
-                          selected: isSelected,
-                          label: Text(campus),
+                          selected: _selectedCampusId == 'All',
+                          label: const Text('All'),
                           onSelected: (selected) {
-                            if (selected && _selectedCampus != campus) {
-                              setState(() => _selectedCampus = campus);
-                              _applyFilter();
-                            } else if (!selected &&
-                                _selectedCampus == campus &&
-                                campus != 'All') {
-                              // If unselecting the current campus, go back to 'All'
-                              setState(() => _selectedCampus = 'All');
+                            if (selected) {
+                              setState(() => _selectedCampusId = 'All');
                               _applyFilter();
                             }
                           },
@@ -224,16 +220,46 @@ class _StaffListScreenState extends State<StaffListScreen> {
                           backgroundColor: Colors.grey.shade200,
                           checkmarkColor: Colors.indigo.shade700,
                           labelStyle: TextStyle(
-                            color: isSelected
+                            color: _selectedCampusId == 'All'
                                 ? Colors.indigo.shade800
                                 : Colors.grey.shade800,
-                            fontWeight: isSelected
+                            fontWeight: _selectedCampusId == 'All'
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                           ),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                      ..._campuses.map((campus) {
+                        final isSelected = _selectedCampusId == campus.id;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            selected: isSelected,
+                            label: Text(campus.name),
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _selectedCampusId = campus.id);
+                                _applyFilter();
+                              } else {
+                                setState(() => _selectedCampusId = 'All');
+                                _applyFilter();
+                              }
+                            },
+                            selectedColor: Colors.indigo.shade100,
+                            backgroundColor: Colors.grey.shade200,
+                            checkmarkColor: Colors.indigo.shade700,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.indigo.shade800
+                                  : Colors.grey.shade800,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
                   ),
                 ),
               ),
@@ -419,7 +445,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
-                                  staff.campus,
+                                  _campusMap[staff.campus] ?? staff.campus,
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -438,16 +464,24 @@ class _StaffListScreenState extends State<StaffListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        'Rs ${staff.salary.toStringAsFixed(0)}',
+                        staff.salaryType == 'Hourly'
+                            ? 'Rs ${staff.hourlyRate.toStringAsFixed(0)}/hr'
+                            : staff.salaryType == 'Lecture'
+                                ? 'Rs ${staff.salary.toStringAsFixed(0)}/lec'
+                                : 'Rs ${staff.salary.toStringAsFixed(0)}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.green,
                         ),
                       ),
-                      const Text(
-                        'Monthly',
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                      Text(
+                        staff.salaryType == 'Hourly'
+                            ? 'Hourly'
+                            : staff.salaryType == 'Lecture'
+                                ? 'Lecture Based'
+                                : 'Monthly',
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
                       if (authProvider.hasPermission('edit_staff') || authProvider.hasPermission('delete_staff'))

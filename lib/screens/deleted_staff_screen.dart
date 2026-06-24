@@ -16,6 +16,8 @@ class _DeletedStaffScreenState extends State<DeletedStaffScreen> {
   List<Staff> _deletedStaff = [];
   bool _isLoading = true;
 
+  Map<String, String> _campusMap = {};
+
   @override
   void initState() {
     super.initState();
@@ -28,9 +30,11 @@ class _DeletedStaffScreenState extends State<DeletedStaffScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final campus = authProvider.activeCampus;
 
+      final campuses = await _firebaseService.getCampuses();
       final staff = await _firebaseService.getDeletedStaff(campus: campus);
       if (mounted) {
         setState(() {
+          _campusMap = {for (var c in campuses) c.id: c.name};
           _deletedStaff = staff;
           _isLoading = false;
         });
@@ -185,11 +189,15 @@ class _DeletedStaffScreenState extends State<DeletedStaffScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    staff.campus,
+                    _campusMap[staff.campus] ?? staff.campus,
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
                   ),
                   Text(
-                    'Salary: Rs ${staff.salary.toStringAsFixed(0)}',
+                    staff.salaryType == 'Hourly'
+                        ? 'Salary: Rs ${staff.hourlyRate.toStringAsFixed(0)}/hr'
+                        : staff.salaryType == 'Lecture'
+                            ? 'Salary: Rs ${staff.salary.toStringAsFixed(0)}/lec'
+                            : 'Salary: Rs ${staff.salary.toStringAsFixed(0)}',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ],

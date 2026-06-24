@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/staff.dart';
 import '../models/attendance.dart';
 import '../models/salary.dart';
+import '../models/campus.dart';
 import '../services/firebase_service.dart';
 import '../shared/widgets/glass_card_widget.dart';
 
@@ -22,6 +23,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
   
   List<Attendance> _attendanceHistory = [];
   List<Salary> _salaryHistory = [];
+  Map<String, String> _campusMap = {};
   bool _isLoading = true;
 
   @override
@@ -37,12 +39,15 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
       final futures = await Future.wait([
         _firebaseService.getStaffAttendance(widget.staff.id),
         _firebaseService.getStaffSalaries(widget.staff.id),
+        _firebaseService.getCampuses(),
       ]);
       
       if (mounted) {
         setState(() {
           _attendanceHistory = futures[0] as List<Attendance>;
           _salaryHistory = futures[1] as List<Salary>;
+          final campuses = futures[2] as List<Campus>;
+          _campusMap = {for (var c in campuses) c.id: c.name};
           _isLoading = false;
         });
       }
@@ -198,10 +203,20 @@ class _StaffProfileScreenState extends State<StaffProfileScreen>
           icon: Icons.work_outline,
           isDark: isDark,
           children: [
-            _buildInfoRow('Campus', widget.staff.campus),
+             _buildInfoRow('Campus', _campusMap[widget.staff.campus] ?? widget.staff.campus),
             _buildInfoRow('Joining Date', widget.staff.joiningDate ?? 'N/A'),
             _buildInfoRow('Salary Type', widget.staff.salaryType),
-            _buildInfoRow('Basic Salary', 'Rs ${NumberFormat.compact().format(widget.staff.salary)}'),
+            _buildInfoRow(
+                widget.staff.salaryType == 'Hourly'
+                    ? 'Hourly Rate'
+                    : widget.staff.salaryType == 'Lecture'
+                        ? 'Rate per Lecture'
+                        : 'Basic Salary',
+                widget.staff.salaryType == 'Hourly'
+                    ? 'Rs ${NumberFormat.compact().format(widget.staff.hourlyRate)}/hr'
+                    : widget.staff.salaryType == 'Lecture'
+                        ? 'Rs ${NumberFormat.compact().format(widget.staff.salary)}/lec'
+                        : 'Rs ${NumberFormat.compact().format(widget.staff.salary)}'),
             _buildInfoRow('Bank Account', widget.staff.bankAccount ?? 'N/A'),
             _buildInfoRow('Status', widget.staff.isActive ? 'Active' : 'Deleted/Inactive',
                 valueColor: widget.staff.isActive ? Colors.green : Colors.red),

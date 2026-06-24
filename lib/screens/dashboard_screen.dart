@@ -150,40 +150,92 @@ class _DashboardScreenState extends State<DashboardScreen>
     return SubscriptionGuard(
       requireActive: false,
       child: Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF121212)
-          : const Color(0xFFF5F7FA),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Premium Gradient Background
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        const Color(0xFF0F2027),
+                        const Color(0xFF203A43),
+                        const Color(0xFF2C5364),
+                      ]
+                    : [
+                        const Color(0xFFE0EAFC),
+                        const Color(0xFFCFDEF3),
+                      ],
               ),
-            )
-          : _error != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error: $_error', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadDashboardData,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      shape: const StadiumBorder(),
+            ),
+          ),
+          // Decorative glowing orbs
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark 
+                    ? Colors.deepPurpleAccent.withValues(alpha: 0.15)
+                    : Colors.deepPurpleAccent.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -50,
+            left: -100,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? Colors.tealAccent.withValues(alpha: 0.15)
+                    : Colors.blueAccent.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          // Main Body Content
+          SafeArea(
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
                     ),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _loadDashboardData,
-              color: Colors.deepPurple,
-              child: CustomScrollView(
+                  )
+                : _error != null
+                ? Center(
+                    child: GlassCard(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
+                          const SizedBox(height: 16),
+                          Text('Error: $_error', style: theme.textTheme.titleMedium?.copyWith(color: isDark ? Colors.white : Colors.black87)),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadDashboardData,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                              foregroundColor: Colors.white,
+                              shape: const StadiumBorder(),
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadDashboardData,
+                    color: Colors.deepPurple,
+                    child: CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   _buildAppBar(user, isDark, authProvider),
@@ -216,14 +268,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                    ), // FadeTransition
+                  ), // SliverToBoxAdapter
+                ], // slivers
+              ), // CustomScrollView
+            ), // RefreshIndicator
+          ), // SafeArea
+        ], // Stack
+      ), // Scaffold
       floatingActionButton: _buildQuickActionFAB(),
-    ),
-    );
+    ), // Scaffold end? No, Scaffold is inside SubscriptionGuard
+    ); // SubscriptionGuard
   }
 
   Widget _buildSectionTitle(String title) {
@@ -242,60 +297,22 @@ class _DashboardScreenState extends State<DashboardScreen>
     final userRole = authProvider.userRole;
     final assignedCampuses = user?.assignedCampuses ?? <String>[];
     
-    final bool canSwitchCampus = (userRole == UserRole.clientAdmin || userRole == UserRole.superAdmin) && assignedCampuses.length > 1;
+    final bool canSwitchCampus = (userRole == UserRole.clientAdmin || userRole == UserRole.superAdmin || userRole == UserRole.lowerAdmin) && assignedCampuses.length > 1;
     return SliverAppBar(
-      expandedHeight: 280.0,
+      expandedHeight: 180.0,
       floating: false,
       pinned: true,
       backgroundColor: Colors.transparent,
       elevation: 0,
       stretch: true,
       flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Background Gradient with Curve
-            ClipPath(
-              clipper: _DashboardHeaderClipper(),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF2E0249), // Deep Purple
-                      Colors.deepPurple.shade700,
-                      const Color(0xFFF806CC), // Magenta accent
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Decorative Circles
-            Positioned(
-              right: -100,
-              top: -50,
-              child: CircleAvatar(
-                radius: 130,
-                backgroundColor: Colors.white.withValues(alpha: 0.05),
-              ),
-            ),
-            Positioned(
-              left: -50,
-              top: 80,
-              child: CircleAvatar(
-                radius: 80,
-                backgroundColor: Colors.white.withValues(alpha: 0.05),
-              ),
-            ),
-            // Content
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+        background: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -472,8 +489,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ),
             ),
-          ],
-        ),
       ),
       actions: [
         PopupMenuButton(
@@ -760,10 +775,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildQuickActionsGrid(String? userCampus) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final role = authProvider.userRole;
-    final canManageUsersAndCampuses = role == UserRole.superAdmin || role == UserRole.clientAdmin;
+    final canManageUsers = role == UserRole.superAdmin || role == UserRole.clientAdmin;
+    final canManageCampuses = role == UserRole.superAdmin || role == UserRole.clientAdmin || authProvider.hasPermission('manage_campuses');
 
     final List<Widget> actions = [
-      if (canManageUsersAndCampuses) ...[
+      if (canManageCampuses)
         _buildGlassyActionCard(
           'Campuses',
           'Manage Locations',
@@ -774,6 +790,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             MaterialPageRoute(builder: (_) => const ManageCampusesScreen()),
           ),
         ),
+      if (canManageUsers)
         _buildGlassyActionCard(
           'Users',
           'Manage Access',
@@ -784,7 +801,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             MaterialPageRoute(builder: (_) => const ManageUsersScreen()),
           ),
         ),
-      ],
       if (authProvider.hasPermission('view_staff'))
         _buildGlassyActionCard(
           'Staff',
@@ -866,9 +882,17 @@ class _DashboardScreenState extends State<DashboardScreen>
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        child: GlassCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        splashColor: color.withValues(alpha: 0.3),
+        highlightColor: color.withValues(alpha: 0.1),
+        child: Builder(
+          builder: (context) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return GlassCard(
+              padding: const EdgeInsets.all(16),
+              blur: 15,
+              backgroundOpacity: isDark ? 0.1 : 0.3,
+              borderOpacity: isDark ? 0.2 : 0.4,
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
@@ -897,46 +921,16 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ],
           ),
+        );
+          },
         ),
       ),
     );
   }
 }
 
-class _DashboardHeaderClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height - 50);
-    final firstControlPoint = Offset(size.width / 4, size.height);
-    final firstEndPoint = Offset(size.width / 2, size.height);
-    path.quadraticBezierTo(
-      firstControlPoint.dx,
-      firstControlPoint.dy,
-      firstEndPoint.dx,
-      firstEndPoint.dy,
-    );
 
-    final secondControlPoint = Offset(
-      size.width - (size.width / 4),
-      size.height,
-    );
-    final secondEndPoint = Offset(size.width, size.height - 50);
-    path.quadraticBezierTo(
-      secondControlPoint.dx,
-      secondControlPoint.dy,
-      secondEndPoint.dx,
-      secondEndPoint.dy,
-    );
 
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}
 
 class StaggeredGridAnimation extends StatelessWidget {
   final Widget child;

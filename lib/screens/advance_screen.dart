@@ -914,16 +914,20 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
     super.dispose();
   }
 
+  Map<String, String> _campusMap = {};
+
   Future<void> _loadStaff() async {
     setState(() => _isLoading = true);
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final campuses = await widget.firebaseService.getCampuses();
       final staff = await widget.firebaseService.getAllStaff(
         campus: authProvider.activeCampus,
       );
       if (mounted) {
         setState(() {
+          _campusMap = {for (var c in campuses) c.id: c.name};
           _staffList = staff;
           _isLoading = false;
         });
@@ -1073,10 +1077,11 @@ class _AddAdvanceTabState extends State<AddAdvanceTab> {
                 ),
                 isExpanded: true,
                 items: _staffList.map((staff) {
+                  final campusName = _campusMap[staff.campus] ?? staff.campus;
                   return DropdownMenuItem(
                     value: staff,
                     child: Text(
-                      '${staff.name} (${staff.campus})',
+                      '${staff.name} ($campusName)',
                       overflow: TextOverflow.ellipsis,
                     ),
                   );

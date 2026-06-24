@@ -14,11 +14,15 @@ class Staff {
   final String? address;
   final String? designation;
   final String? joiningDate;
-  final String salaryType; // 'Monthly' or 'Lecture'
+  final String salaryType; // 'Monthly', 'Hourly', or 'Lecture'
   final String? bankAccount;
   final String? emergencyContact;
   final String? notes;
   final String? profileImageUrl;
+
+  // Hourly and Custom Calculation Fields
+  final double hourlyRate;
+  final String calculationType; // 'absent_based' or 'present_based'
 
   Staff({
     required this.id,
@@ -39,6 +43,8 @@ class Staff {
     this.emergencyContact,
     this.notes,
     this.profileImageUrl,
+    this.hourlyRate = 0.0,
+    this.calculationType = 'absent_based',
   });
 
   factory Staff.fromJson(Map<String, dynamic> json) {
@@ -56,11 +62,15 @@ class Staff {
       address: json['address'],
       designation: json['designation'],
       joiningDate: json['joiningDate'],
-      salaryType: json['salaryType'] == 'lecture_based' ? 'Lecture' : 'Monthly',
+      salaryType: json['salaryType'] == 'lecture_based'
+          ? 'Lecture'
+          : (json['salaryType'] == 'hourly' ? 'Hourly' : 'Monthly'),
       bankAccount: json['bankAccount'],
       emergencyContact: json['emergencyContact'],
       notes: json['notes'],
       profileImageUrl: json['profileImage'],
+      hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0.0,
+      calculationType: json['calculationType'] ?? 'absent_based',
     );
   }
 
@@ -79,11 +89,15 @@ class Staff {
       'address': address,
       'designation': (designation == null || designation!.isEmpty) ? 'Staff' : designation,
       'joiningDate': joiningDate,
-      'salaryType': salaryType == 'Lecture' ? 'lecture_based' : 'monthly',
+      'salaryType': salaryType == 'Lecture'
+          ? 'lecture_based'
+          : (salaryType == 'Hourly' ? 'hourly' : 'monthly'),
       'bankAccount': bankAccount,
       'emergencyContact': emergencyContact,
       'notes': notes,
       'profileImage': profileImageUrl,
+      'hourlyRate': hourlyRate,
+      'calculationType': calculationType,
     };
   }
 }

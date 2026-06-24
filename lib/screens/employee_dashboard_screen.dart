@@ -5,6 +5,7 @@ import '../providers/theme_provider.dart';
 import '../models/user.dart';
 import '../models/salary.dart';
 import '../models/attendance.dart';
+import '../models/staff.dart';
 import '../services/firebase_service.dart';
 import 'login_screen.dart';
 import 'package:intl/intl.dart';
@@ -30,6 +31,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
   List<Salary> _mySalaries = [];
   List<Attendance> _myAttendance = [];
   User? _currentUser;
+  Staff? _staffProfile;
+  Attendance? _activeCheckIn;
 
   // Gradient colors for cards
   final List<List<Color>> _cardGradients = [
@@ -70,12 +73,11 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
       _currentUser = authProvider.currentUser;
 
       if (_currentUser != null) {
-        final salaries = await _firebaseService.getStaffSalaries(
-          _currentUser!.id,
-        );
-        final attendance = await _firebaseService.getStaffAttendance(
-          _currentUser!.id,
-        );
+        _staffProfile = await _firebaseService.getStaffById(_currentUser!.id);
+        
+        final salaries = await _firebaseService.getStaffSalaries(_currentUser!.id);
+        final attendance = await _firebaseService.getStaffAttendance(_currentUser!.id);
+        _activeCheckIn = await _firebaseService.getActiveCheckIn(_currentUser!.id);
 
         if (mounted) {
           setState(() {
@@ -126,6 +128,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
                           child: Column(
                             children: [
                               _buildQuickStats(isDark),
+                              if (_staffProfile?.salaryType == 'Hourly')
+                                _buildCheckInOutCard(isDark),
                               _buildTabSection(isDark),
                             ],
                           ),
@@ -133,6 +137,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
                       : Column(
                           children: [
                             _buildQuickStats(isDark),
+                            if (_staffProfile?.salaryType == 'Hourly')
+                              _buildCheckInOutCard(isDark),
                             _buildTabSection(isDark),
                           ],
                         ),
@@ -666,7 +672,11 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
   }
 
   Widget _buildAttendanceTab(bool isDark) {
-    if (_myAttendance.isEmpty) {
+    final list = _staffProfile?.salaryType == 'Hourly'
+        ? _myAttendance.where((a) => a.date != null).toList()
+        : _myAttendance.where((a) => a.date == null).toList();
+
+    if (list.isEmpty) {
       return _buildEmptyState(
         icon: Icons.calendar_today,
         title: 'No Attendance Records',
@@ -676,12 +686,178 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen>
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _myAttendance.length,
+      itemCount: list.length,
       itemBuilder: (context, index) {
-        final record = _myAttendance[index];
+        final record = list[index];
+        if (_staffProfile?.salaryType == 'Hourly') {
+          return _buildDailyAttendanceCard(record, isDark, index);
+        }
         return _buildAttendanceCard(record, isDark, index);
       },
     );
+  }
+
+  Widget _buildDailyAttendanceCard(Attendance record, bool isDark, int index) {
+    final parsedDate = DateTime.tryParse(record.date ?? '') ?? DateTime.now();
+    final dateStr = DateFormat('EEE, d MMM yyyy').format(parsedDate);
+    
+    final checkInStr = record.checkInTime != null
+        ? DateFormat('hh:mm a').format(DateTime.parse(record.checkInTime!))
+        : '-';
+    final checkOutStr = record.checkOutTime != null
+        ? DateFormat('hh:mm a').format(DateTime.parse(record.checkOutTime!))
+        : 'Active';
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (index * 100)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 30 * (1 - value)),
+          child: Opacity(opacity: value, child: child),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: GlassCard(
+          padding: const EdgeInsets.all(16),
+          borderRadius: 16,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dateStr,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'In: $checkInStr  •  Out: $checkOutStr',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white60 : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${record.totalHours.toStringAsFixed(1)} hrs',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckInOutCard(bool isDark) {
+    final hasActiveCheckIn = _activeCheckIn != null;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasActiveCheckIn ? 'Checked In' : 'Checked Out',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: hasActiveCheckIn ? Colors.green : Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  hasActiveCheckIn
+                      ? 'Started at ${DateFormat('hh:mm a').format(DateTime.parse(_activeCheckIn!.checkInTime!))}'
+                      : 'Log your working hours here',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white60 : Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: _toggleCheckInOut,
+            icon: Icon(hasActiveCheckIn ? Icons.logout_rounded : Icons.login_rounded, color: Colors.white, size: 18),
+            label: Text(
+              hasActiveCheckIn ? 'Check Out' : 'Check In',
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: hasActiveCheckIn ? Colors.red : Colors.green,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleCheckInOut() async {
+    if (_staffProfile == null) return;
+    setState(() => _isLoading = true);
+    try {
+      if (_activeCheckIn != null) {
+        // Checkout
+        await _firebaseService.checkOutStaff(_staffProfile!.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully checked out!'), backgroundColor: Colors.green),
+        );
+      } else {
+        // Checkin
+        await _firebaseService.checkInStaff(_staffProfile!.id, _staffProfile!.name);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully checked in!'), backgroundColor: Colors.green),
+        );
+      }
+      await _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception:', '')}'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Widget _buildAttendanceCard(Attendance record, bool isDark, int index) {

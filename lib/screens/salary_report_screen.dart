@@ -27,6 +27,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
   String? _selectedCampus;
   final String _searchQuery = '';
   String _filterStatus = 'All'; // All, Paid, Unpaid
+  String _filterSalaryType = 'All'; // All, Monthly, Hourly, Lecture Based
 
   // Selection state
   bool _isSelectionMode = false;
@@ -119,6 +120,11 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
       // Status filter
       if (_filterStatus == 'Paid' && !s.isPaid) return false;
       if (_filterStatus == 'Unpaid' && s.isPaid) return false;
+
+      // Salary Type filter
+      if (_filterSalaryType == 'Monthly' && s.salaryType != 'monthly') return false;
+      if (_filterSalaryType == 'Hourly' && s.salaryType != 'hourly') return false;
+      if (_filterSalaryType == 'Lecture Based' && s.salaryType != 'lecture_based') return false;
 
       return true;
     }).toList()..sort((a, b) => a.staffName.compareTo(b.staffName));
@@ -615,6 +621,26 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
               });
             },
           ),
+          const SizedBox(width: 12),
+          // Salary Type Selector
+          _buildFilterChip(
+            label: _filterSalaryType == 'All' ? 'All Types' : _filterSalaryType,
+            icon: Icons.work_outline,
+            isDark: isDark,
+            onTap: () {
+              setState(() {
+                if (_filterSalaryType == 'All') {
+                  _filterSalaryType = 'Monthly';
+                } else if (_filterSalaryType == 'Monthly') {
+                  _filterSalaryType = 'Hourly';
+                } else if (_filterSalaryType == 'Hourly') {
+                  _filterSalaryType = 'Lecture Based';
+                } else {
+                  _filterSalaryType = 'All';
+                }
+              });
+            },
+          ),
         ],
       ),
     );
@@ -785,6 +811,38 @@ class _SalaryReportScreenState extends State<SalaryReportScreen>
                       'Rs ${NumberFormat.compact().format(salary.totalSalary)}',
                       color: Colors.green,
                       isBold: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      salary.salaryType == 'hourly'
+                          ? Icons.access_time_rounded
+                          : salary.salaryType == 'lecture_based'
+                              ? Icons.school_rounded
+                              : Icons.calendar_month_rounded,
+                      size: 14,
+                      color: Colors.deepPurple.shade300,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        (salary.calculationDetails != null && salary.calculationDetails!.isNotEmpty)
+                            ? salary.calculationDetails!
+                            : salary.salaryType == 'hourly'
+                                ? '${salary.totalHours.toStringAsFixed(1)} hours @ Rs ${salary.hourlyRate.toStringAsFixed(0)}/hr'
+                                : salary.salaryType == 'lecture_based'
+                                    ? '${salary.workingDays.toStringAsFixed(0)} lectures'
+                                    : 'Absents: ${salary.absents.toStringAsFixed(1)} days | Lates: ${salary.lates}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),

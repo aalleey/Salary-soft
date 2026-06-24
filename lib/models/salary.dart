@@ -23,6 +23,15 @@ class Salary {
   final String status; // 'Paid', 'Partial Paid', 'Pending'
   final String? notes;
 
+  // New tracking fields
+  final String salaryType; // 'monthly', 'hourly', 'lecture_based'
+  final double hourlyRate;
+  final double totalHours;
+  final double workingDays;
+  final double bonus;
+  final double otherDeductions;
+  final String? calculationDetails;
+
   // Helper getters for formatting
 
   /// Formatted total salary with currency (e.g., "Rs 35,000")
@@ -95,6 +104,13 @@ class Salary {
     this.remainingAmount = 0.0,
     this.status = 'Pending',
     this.notes,
+    this.salaryType = 'monthly',
+    this.hourlyRate = 0.0,
+    this.totalHours = 0.0,
+    this.workingDays = 0.0,
+    this.bonus = 0.0,
+    this.otherDeductions = 0.0,
+    this.calculationDetails,
   });
 
   factory Salary.fromJson(Map<String, dynamic> json) {
@@ -119,6 +135,13 @@ class Salary {
       remainingAmount: _parseRemainingAmount(json),
       status: _parseStatus(json),
       notes: json['notes'],
+      salaryType: json['salaryType'] ?? 'monthly',
+      hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0.0,
+      totalHours: (json['totalHours'] as num?)?.toDouble() ?? 0.0,
+      workingDays: (json['workingDays'] as num?)?.toDouble() ?? 0.0,
+      bonus: (json['bonus'] as num?)?.toDouble() ?? 0.0,
+      otherDeductions: (json['otherDeductions'] as num?)?.toDouble() ?? 0.0,
+      calculationDetails: json['calculationDetails'],
     );
   }
 
@@ -167,6 +190,13 @@ class Salary {
       'remainingAmount': remainingAmount,
       'status': status,
       'notes': notes,
+      'salaryType': salaryType,
+      'hourlyRate': hourlyRate,
+      'totalHours': totalHours,
+      'workingDays': workingDays,
+      'bonus': bonus,
+      'otherDeductions': otherDeductions,
+      'calculationDetails': calculationDetails,
     };
   }
 }

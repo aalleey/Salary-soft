@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../models/staff.dart';
 import '../models/attendance.dart';
 import '../models/salary.dart';
 import '../models/advance.dart';
 import '../models/campus.dart';
 import '../models/user.dart' as app_model;
+import 'salary_calculation_service.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -52,7 +54,7 @@ class FirebaseService {
         query = query.where('clientId', isEqualTo: _currentClientId);
       }
       if (campus != null && campus.isNotEmpty) {
-        query = query.where('campus', isEqualTo: campus);
+        query = query.where('campusId', isEqualTo: campus);
       }
       
       if (lastDoc != null && lastDoc is DocumentSnapshot) {
@@ -81,10 +83,10 @@ class FirebaseService {
         query = query.where('clientId', isEqualTo: _currentClientId);
       }
       if (campus != null && campus.isNotEmpty) {
-        query = query.where('campus', isEqualTo: campus);
+        query = query.where('campusId', isEqualTo: campus);
       }
       if (onlyActive) {
-        query = query.where('isActive', isEqualTo: true);
+        query = query.where('status', isEqualTo: 'active');
       }
       
       final snapshot = await query.get();
@@ -122,7 +124,11 @@ class FirebaseService {
 
   Future<void> updateStaff(String id, Staff staff) async {
     try {
-      await _firestore.collection('staff').doc(id).update(staff.toJson());
+      final body = staff.toJson();
+      if (body['clientId'] == null) {
+        body.remove('clientId');
+      }
+      await _firestore.collection('staff').doc(id).update(body);
     } catch (e) {
       debugPrint('Error updating staff: $e');
       rethrow;
@@ -170,12 +176,12 @@ class FirebaseService {
 
   Future<List<Staff>> getDeletedStaff({String? campus}) async {
     try {
-      Query query = _firestore.collection('staff').where('isActive', isEqualTo: false);
+      Query query = _firestore.collection('staff').where('status', isEqualTo: 'inactive');
       if (_shouldFilterByClient) {
         query = query.where('clientId', isEqualTo: _currentClientId);
       }
       if (campus != null && campus.isNotEmpty) {
-        query = query.where('campus', isEqualTo: campus);
+        query = query.where('campusId', isEqualTo: campus);
       }
       final snapshot = await query.get();
       return snapshot.docs.map((doc) => Staff.fromJson(_withDocId(doc))).toList();
@@ -261,6 +267,102 @@ class FirebaseService {
     } catch (e) {
       debugPrint('Error deleting attendance: $e');
       rethrow;
+    }
+  }
+
+  // Daily check-in/out and logging methods
+  Future<void> checkInStaff(String staffId, String staffName) async {
+    try {
+      final now = DateTime.now();
+      final dateStr = DateFormat('yyyy-MM-dd').format(now);
+      
+      // Check for active check-in (checkOutTime == null)
+      final existing = await _firestore.collection('attendance')
+          .where('staffId', isEqualTo: staffId)
+          .where('checkOutTime', isNull: true)
+          .limit(1)
+          .get();
+      
+      if (existing.docs.isNotEmpty) {
+        throw Exception('Staff member is already checked in.');
+      }
+      
+      final attendance = Attendance(
+        id: '',
+        staffId: staffId,
+        staffName: staffName,
+        month: now.month,
+        year: now.year,
+        absents: 0,
+        lates: 0,
+        halfLeaves: 0,
+        date: dateStr,
+        checkInTime: now.toIso8601String(),
+        checkOutTime: null,
+        totalHours: 0.0,
+        status: 'present',
+      );
+      
+      final body = attendance.toJson();
+      if (_shouldFilterByClient) {
+        body['clientId'] = _currentClientId;
+      }
+      await _firestore.collection('attendance').add(body);
+      debugPrint('FirebaseService: Checked in $staffName on $dateStr');
+    } catch (e) {
+      debugPrint('Error in checkInStaff: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> checkOutStaff(String staffId) async {
+    try {
+      final now = DateTime.now();
+      
+      // Find the active check-in doc (checkOutTime == null)
+      final activeQuery = await _firestore.collection('attendance')
+          .where('staffId', isEqualTo: staffId)
+          .where('checkOutTime', isNull: true)
+          .limit(1)
+          .get();
+      
+      if (activeQuery.docs.isEmpty) {
+        throw Exception('No active check-in found for this staff member.');
+      }
+      
+      final doc = activeQuery.docs.first;
+      final data = doc.data();
+      final checkInTimeStr = data['checkInTime'] as String;
+      final checkInTime = DateTime.parse(checkInTimeStr);
+      
+      final totalHours = now.difference(checkInTime).inMilliseconds / (1000.0 * 60.0 * 60.0);
+      
+      await doc.reference.update({
+        'checkOutTime': now.toIso8601String(),
+        'totalHours': totalHours,
+      });
+      debugPrint('FirebaseService: Checked out staff $staffId. Total hours: $totalHours');
+    } catch (e) {
+      debugPrint('Error in checkOutStaff: $e');
+      rethrow;
+    }
+  }
+
+  Future<Attendance?> getActiveCheckIn(String staffId) async {
+    try {
+      final activeQuery = await _firestore.collection('attendance')
+          .where('staffId', isEqualTo: staffId)
+          .where('checkOutTime', isNull: true)
+          .limit(1)
+          .get();
+      
+      if (activeQuery.docs.isNotEmpty) {
+        return Attendance.fromJson(_withDocId(activeQuery.docs.first));
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error in getActiveCheckIn: $e');
+      return null;
     }
   }
 
@@ -404,6 +506,37 @@ class FirebaseService {
     }
   }
 
+  Future<void> updateSalaryPayment({
+    required String salaryId,
+    required double bonus,
+    required double otherDeductions,
+    required double totalDeduction,
+    required double totalSalary,
+    required double paidAmount,
+    required String paidDate,
+    required String notes,
+    required String status,
+  }) async {
+    try {
+      final double remaining = totalSalary - paidAmount;
+      await _firestore.collection('salaries').doc(salaryId).update({
+        'bonus': bonus,
+        'otherDeductions': otherDeductions,
+        'deduction': totalDeduction,
+        'totalSalary': totalSalary,
+        'paidAmount': paidAmount,
+        'paidDate': paidDate,
+        'notes': notes,
+        'status': status,
+        'remainingAmount': remaining < 0 ? 0.0 : remaining,
+        'isPaid': status == 'Paid',
+      });
+    } catch (e) {
+      debugPrint('Error updating salary payment: $e');
+      rethrow;
+    }
+  }
+
   Future<void> recalculateAndSaveSalary(String staffId, int month, int year) async {
     try {
       // 1. Get staff
@@ -412,11 +545,29 @@ class FirebaseService {
 
       // 2. Get attendance
       final attendanceList = await getAttendance(staffId: staffId, month: month, year: year);
-      double absents = 0;
+      
+      // Separate monthly summaries from daily logs
+      final summaries = attendanceList.where((a) => a.date == null).toList();
+      final dailyLogs = attendanceList.where((a) => a.date != null).toList();
+
+      double absents = 0.0;
       int lates = 0;
-      if (attendanceList.isNotEmpty) {
-        absents = attendanceList.first.absents.toDouble();
-        lates = attendanceList.first.lates;
+      int halfLeaves = 0;
+      double totalWorkingHours = 0.0;
+      double totalLectures = 0.0;
+
+      if (summaries.isNotEmpty) {
+        final summary = summaries.first;
+        absents = summary.absents.toDouble();
+        lates = summary.lates;
+        halfLeaves = summary.halfLeaves;
+        totalWorkingHours = summary.totalWorkingHours;
+        totalLectures = summary.totalLectures;
+      }
+
+      // If hourly and totalWorkingHours was not manually entered, sum daily logs:
+      if (staff.salaryType == 'Hourly' && totalWorkingHours == 0.0) {
+        totalWorkingHours = dailyLogs.fold<double>(0.0, (acc, log) => acc + log.totalHours);
       }
 
       // 3. Get advances
@@ -427,20 +578,42 @@ class FirebaseService {
         advanceAmount += adv.advanceAmount;
       }
 
-      // 4. Calculate salary fields
-      double basicSalary = staff.salary;
-      double absentDeduction = (basicSalary / 30.0) * absents;
-      double deduction = absentDeduction + advanceAmount;
-      double totalSalary = basicSalary - deduction;
-      if (totalSalary < 0) totalSalary = 0;
-
-      // 5. Check if salary document already exists in Firestore
+      // 4. Check if salary document already exists in Firestore to keep bonus and otherDeductions
+      double bonus = 0.0;
+      double otherDeductions = 0.0;
       final existingQuery = await _firestore.collection('salaries')
           .where('staffId', isEqualTo: staffId)
           .where('month', isEqualTo: month)
           .where('year', isEqualTo: year)
           .limit(1)
           .get();
+
+      if (existingQuery.docs.isNotEmpty) {
+        final data = existingQuery.docs.first.data();
+        bonus = (data['bonus'] as num?)?.toDouble() ?? 0.0;
+        otherDeductions = (data['otherDeductions'] as num?)?.toDouble() ?? 0.0;
+      }
+
+      // 5. Calculate salary fields using Reusable Salary Calculation Service
+      final presents = 30.0 - absents;
+      final calcResult = SalaryCalculationService.calculateSalary(
+        salaryType: staff.salaryType == 'Lecture' ? 'lecture_based' : (staff.salaryType == 'Hourly' ? 'hourly' : 'monthly'),
+        basicSalary: staff.salary,
+        hourlyRate: staff.hourlyRate,
+        workingHours: totalWorkingHours,
+        workingDays: staff.salaryType == 'Lecture' ? totalLectures : presents,
+        absents: absents,
+        lates: lates.toDouble(),
+        halfLeaves: halfLeaves.toDouble(),
+        advance: advanceAmount,
+        otherDeductions: otherDeductions,
+        bonus: bonus,
+        calculationType: staff.calculationType,
+      );
+
+      double grossSalary = calcResult.grossSalary;
+      double deduction = calcResult.deduction;
+      double totalSalary = calcResult.totalSalary;
 
       if (existingQuery.docs.isNotEmpty) {
         final doc = existingQuery.docs.first;
@@ -460,7 +633,7 @@ class FirebaseService {
         }
 
         await doc.reference.update({
-          'basicSalary': basicSalary,
+          'basicSalary': grossSalary,
           'deduction': deduction,
           'totalSalary': totalSalary,
           'absents': absents,
@@ -469,6 +642,13 @@ class FirebaseService {
           'remainingAmount': remainingAmount,
           'status': status,
           'isPaid': isPaid,
+          'salaryType': staff.salaryType == 'Lecture' ? 'lecture_based' : (staff.salaryType == 'Hourly' ? 'hourly' : 'monthly'),
+          'hourlyRate': staff.salaryType == 'Hourly' ? staff.hourlyRate : 0.0,
+          'totalHours': staff.salaryType == 'Hourly' ? totalWorkingHours : 0.0,
+          'workingDays': staff.salaryType == 'Lecture' ? totalLectures : (staff.salaryType == 'Monthly' && staff.calculationType == 'present_based' ? presents : 30.0 - absents),
+          'bonus': bonus,
+          'otherDeductions': otherDeductions,
+          'calculationDetails': calcResult.details,
         });
         debugPrint('FirebaseService: Recalculated and updated salary for ${staff.name}');
       } else {
@@ -478,7 +658,7 @@ class FirebaseService {
           'staffName': staff.name,
           'month': month,
           'year': year,
-          'basicSalary': basicSalary,
+          'basicSalary': grossSalary,
           'deduction': deduction,
           'totalSalary': totalSalary,
           'absents': absents,
@@ -492,6 +672,13 @@ class FirebaseService {
           'remainingAmount': totalSalary,
           'status': 'Pending',
           'notes': null,
+          'salaryType': staff.salaryType == 'Lecture' ? 'lecture_based' : (staff.salaryType == 'Hourly' ? 'hourly' : 'monthly'),
+          'hourlyRate': staff.salaryType == 'Hourly' ? staff.hourlyRate : 0.0,
+          'totalHours': staff.salaryType == 'Hourly' ? totalWorkingHours : 0.0,
+          'workingDays': staff.salaryType == 'Lecture' ? totalLectures : (staff.salaryType == 'Monthly' && staff.calculationType == 'present_based' ? presents : 30.0 - absents),
+          'bonus': bonus,
+          'otherDeductions': otherDeductions,
+          'calculationDetails': calcResult.details,
         };
         if (_shouldFilterByClient) {
           body['clientId'] = _currentClientId;

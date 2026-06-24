@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'glass_card_widget.dart';
 
 /// A premium animated statistics card used across all role dashboards.
 class StatCard extends StatelessWidget {
@@ -29,36 +30,32 @@ class StatCard extends StatelessWidget {
         curve: Curves.easeOutCubic,
         builder: (context, v, child) =>
             Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 20 * (1 - v)), child: child)),
-        child: Container(
+        child: GlassCard(
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradient,
+          blur: 15,
+          backgroundOpacity: 0.1,
+          borderOpacity: 0.2,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradient.map((c) => c.withValues(alpha: 0.2)).toList(),
+              ),
+              borderRadius: BorderRadius.circular(20),
             ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: gradient.last.withValues(alpha: 0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Background watermark icon
-              Positioned(
-                right: -10,
-                bottom: -10,
-                child: Icon(
-                  icon,
-                  size: 70,
-                  color: Colors.white.withValues(alpha: 0.12),
+            child: Stack(
+              children: [
+                // Background watermark icon
+                Positioned(
+                  right: -10,
+                  bottom: -10,
+                  child: Icon(
+                    icon,
+                    size: 70,
+                    color: gradient.last.withValues(alpha: 0.3),
+                  ),
                 ),
-              ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -107,6 +104,7 @@ class StatCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

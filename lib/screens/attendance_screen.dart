@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/staff.dart';
 import '../models/attendance.dart';
+import '../models/campus.dart';
 import '../services/firebase_service.dart';
 import '../providers/auth_provider.dart';
 
@@ -18,6 +19,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   final _absentsController = TextEditingController();
   final _latesController = TextEditingController();
   final _halfLeavesController = TextEditingController();
+  final _workingHoursController = TextEditingController();
+  final _lecturesController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   List<Staff> _staffList = [];
@@ -43,16 +46,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   ];
 
   // Campus filter
-  List<String> _campusNames = ['All'];
-  String _selectedCampus = 'All';
+  List<Campus> _campuses = [];
+  Map<String, String> _campusMap = {};
+  String _selectedCampusId = 'All';
   bool _isLoadingCampuses = false;
 
   // Filtered staff based on campus selection
   List<Staff> get _filteredStaffList {
-    if (_selectedCampus == 'All') {
+    if (_selectedCampusId == 'All') {
       return _staffList;
     }
-    return _staffList.where((s) => s.campus == _selectedCampus).toList();
+    return _staffList.where((s) => s.campus == _selectedCampusId).toList();
   }
 
   @override
@@ -62,13 +66,48 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     _loadStaff();
   }
 
+  Future<void> _loadExistingAttendanceForSelected() async {
+    if (_selectedStaff == null) return;
+    try {
+      final records = await _firebaseService.getAttendance(
+        month: _selectedMonth,
+        year: _selectedYear,
+        staffId: _selectedStaff!.id,
+      );
+      final summaries = records.where((r) => r.date == null).toList();
+      if (summaries.isNotEmpty) {
+        final summary = summaries.first;
+        setState(() {
+          _absentsController.text = summary.absents.toString();
+          _latesController.text = summary.lates.toString();
+          _halfLeavesController.text = summary.halfLeaves.toString();
+          _workingHoursController.text = summary.totalWorkingHours > 0 
+              ? summary.totalWorkingHours.toStringAsFixed(1) 
+              : '';
+          _lecturesController.text = summary.totalLectures > 0 
+              ? summary.totalLectures.toStringAsFixed(0) 
+              : '';
+        });
+      } else {
+        setState(() {
+          _absentsController.clear();
+          _latesController.clear();
+          _halfLeavesController.clear();
+          _workingHoursController.clear();
+          _lecturesController.clear();
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<void> _loadCampuses() async {
     setState(() => _isLoadingCampuses = true);
     try {
       final campuses = await _firebaseService.getCampuses();
       if (mounted) {
         setState(() {
-          _campusNames = ['All', ...campuses.map((c) => c.name)];
+          _campuses = campuses;
+          _campusMap = {for (var c in campuses) c.id: c.name};
           _isLoadingCampuses = false;
         });
       }
@@ -82,6 +121,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     _absentsController.dispose();
     _latesController.dispose();
     _halfLeavesController.dispose();
+    _workingHoursController.dispose();
+    _lecturesController.dispose();
     super.dispose();
   }
 
@@ -128,23 +169,36 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      final absents = int.parse(_absentsController.text);
-      final lates = _latesController.text.isEmpty
-          ? 0
-          : int.parse(_latesController.text);
-      final halfLeaves = _halfLeavesController.text.isEmpty
-          ? 0
-          : int.parse(_halfLeavesController.text);
+      double workingHours = 0.0;
+      double totalLectures = 0.0;
+      int absents = 0;
+      int lates = 0;
+      int halfLeaves = 0;
 
-      // Check for existing attendance record
-      final existingAttendance = await _firebaseService.getAttendance(
+      if (_selectedStaff!.salaryType == 'Hourly') {
+        workingHours = double.tryParse(_workingHoursController.text) ?? 0.0;
+      } else if (_selectedStaff!.salaryType == 'Lecture') {
+        totalLectures = double.tryParse(_lecturesController.text) ?? 0.0;
+      } else {
+        absents = int.parse(_absentsController.text);
+        lates = _latesController.text.isEmpty
+            ? 0
+            : int.parse(_latesController.text);
+        halfLeaves = _halfLeavesController.text.isEmpty
+            ? 0
+            : int.parse(_halfLeavesController.text);
+      }
+
+      // Check for existing attendance record (monthly summary has date == null)
+      final existingAttendanceList = await _firebaseService.getAttendance(
         month: _selectedMonth,
         year: _selectedYear,
         staffId: _selectedStaff!.id,
       );
+      final existingSummaries = existingAttendanceList.where((a) => a.date == null).toList();
 
       final attendance = Attendance(
-        id: existingAttendance.isNotEmpty ? existingAttendance.first.id : '',
+        id: existingSummaries.isNotEmpty ? existingSummaries.first.id : '',
         staffId: _selectedStaff!.id,
         staffName: _selectedStaff!.name,
         month: _selectedMonth,
@@ -152,9 +206,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         absents: absents,
         lates: lates,
         halfLeaves: halfLeaves,
+        totalWorkingHours: workingHours,
+        totalLectures: totalLectures,
       );
 
-      if (existingAttendance.isNotEmpty) {
+      if (existingSummaries.isNotEmpty) {
         await _firebaseService.updateAttendance(attendance.id, attendance);
       } else {
         await _firebaseService.addAttendance(attendance);
@@ -164,7 +220,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Attendance ${existingAttendance.isNotEmpty ? 'updated' : 'recorded'} successfully',
+              'Attendance ${existingSummaries.isNotEmpty ? 'updated' : 'recorded'} successfully',
             ),
             backgroundColor: Colors.green,
           ),
@@ -176,6 +232,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _absentsController.clear();
           _latesController.clear();
           _halfLeavesController.clear();
+          _workingHoursController.clear();
+          _lecturesController.clear();
         });
       }
     } catch (e) {
@@ -319,7 +377,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     );
                   }),
                   onChanged: (value) {
-                    if (value != null) setState(() => _selectedMonth = value);
+                    if (value != null) {
+                      setState(() => _selectedMonth = value);
+                      _loadExistingAttendanceForSelected();
+                    }
                   },
                 ),
               ),
@@ -336,7 +397,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     );
                   }),
                   onChanged: (value) {
-                    if (value != null) setState(() => _selectedYear = value);
+                    if (value != null) {
+                      setState(() => _selectedYear = value);
+                      _loadExistingAttendanceForSelected();
+                    }
                   },
                 ),
               ),
@@ -399,21 +463,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _campusNames.map((campus) {
-              final isSelected = _selectedCampus == campus;
-              return FilterChip(
-                selected: isSelected,
-                label: Text(campus),
+            children: [
+              FilterChip(
+                selected: _selectedCampusId == 'All',
+                label: const Text('All'),
                 onSelected: (selected) {
-                  if (selected && _selectedCampus != campus) {
+                  if (selected) {
                     setState(() {
-                      _selectedCampus = campus;
-                      // Reset selected staff when campus changes
-                      if (_selectedStaff != null &&
-                          campus != 'All' &&
-                          _selectedStaff!.campus != campus) {
-                        _selectedStaff = null;
-                      }
+                      _selectedCampusId = 'All';
                     });
                   }
                 },
@@ -421,13 +478,44 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 backgroundColor: Colors.grey.shade100,
                 checkmarkColor: Colors.teal.shade700,
                 labelStyle: TextStyle(
-                  color: isSelected
+                  color: _selectedCampusId == 'All'
                       ? Colors.teal.shade800
                       : Colors.grey.shade700,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: _selectedCampusId == 'All' ? FontWeight.bold : FontWeight.normal,
                 ),
-              );
-            }).toList(),
+              ),
+              ..._campuses.map((campus) {
+                final isSelected = _selectedCampusId == campus.id;
+                return FilterChip(
+                  selected: isSelected,
+                  label: Text(campus.name),
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        _selectedCampusId = campus.id;
+                        // Reset selected staff when campus changes
+                        if (_selectedStaff != null && _selectedStaff!.campus != campus.id) {
+                          _selectedStaff = null;
+                        }
+                      });
+                    } else {
+                      setState(() {
+                        _selectedCampusId = 'All';
+                      });
+                    }
+                  },
+                  selectedColor: Colors.teal.shade100,
+                  backgroundColor: Colors.grey.shade100,
+                  checkmarkColor: Colors.teal.shade700,
+                  labelStyle: TextStyle(
+                    color: isSelected
+                        ? Colors.teal.shade800
+                        : Colors.grey.shade700,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                );
+              }),
+            ],
           ),
         ],
       ),
@@ -524,90 +612,150 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               isExpanded: true,
               items: _filteredStaffList.map((staff) {
+                final campusName = _campusMap[staff.campus] ?? staff.campus;
                 return DropdownMenuItem(
                   value: staff,
                   child: Text(
-                    '${staff.name} (${staff.campus})',
+                    '${staff.name} ($campusName)',
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
               }).toList(),
-              onChanged: (value) => setState(() => _selectedStaff = value),
+              onChanged: (value) {
+                setState(() => _selectedStaff = value);
+                _loadExistingAttendanceForSelected();
+              },
               validator: (value) =>
                   value == null ? 'Please select a staff member' : null,
             ),
             const SizedBox(height: 20),
 
-            // Absents Field
-            TextFormField(
-              controller: _absentsController,
-              decoration: _buildInputDecoration(
-                label: 'Full Day Absents *',
-                icon: Icons.event_busy_outlined,
-                iconColor: Colors.red,
-                hint: 'Enter full absent days (0-31)',
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter number of absents';
-                }
-                final absents = int.tryParse(value);
-                if (absents == null || absents < 0 || absents > 31) {
-                  return 'Enter a valid number (0-31)';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Half Leaves Field (NEW)
-            TextFormField(
-              controller: _halfLeavesController,
-              decoration: _buildInputDecoration(
-                label: 'Half Day Leaves',
-                icon: Icons.timelapse_outlined,
-                iconColor: Colors.orange,
-                hint: 'Enter half-day leaves (0-62)',
-                helper: '2 half-leaves = 1 absent deduction',
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final halfLeaves = int.tryParse(value);
-                  if (halfLeaves == null || halfLeaves < 0 || halfLeaves > 62) {
-                    return 'Enter a valid number (0-62)';
+            if (_selectedStaff == null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: const Text(
+                  'Please select a staff member above to enter attendance metrics.',
+                  style: TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else if (_selectedStaff!.salaryType == 'Hourly') ...[
+              // Working Hours Field
+              TextFormField(
+                controller: _workingHoursController,
+                decoration: _buildInputDecoration(
+                  label: 'Total Working Hours *',
+                  icon: Icons.timer_outlined,
+                  iconColor: Colors.blue,
+                  hint: 'Enter total working hours for the month',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter working hours';
                   }
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Lates Field
-            TextFormField(
-              controller: _latesController,
-              decoration: _buildInputDecoration(
-                label: 'Late Arrivals',
-                icon: Icons.schedule,
-                iconColor: Colors.amber.shade700,
-                hint: 'Enter late arrivals (0-31)',
-                helper: '3 lates = 1 absent deduction',
+                  final hours = double.tryParse(value);
+                  if (hours == null || hours < 0) {
+                    return 'Enter a valid number of hours';
+                  }
+                  return null;
+                },
               ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final lates = int.tryParse(value);
-                  if (lates == null || lates < 0 || lates > 31) {
+            ] else if (_selectedStaff!.salaryType == 'Lecture') ...[
+              // Lectures Conducted Field
+              TextFormField(
+                controller: _lecturesController,
+                decoration: _buildInputDecoration(
+                  label: 'Total Lectures Conducted *',
+                  icon: Icons.school_outlined,
+                  iconColor: Colors.purple,
+                  hint: 'Enter number of lectures conducted',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter lecture count';
+                  }
+                  final lecs = double.tryParse(value);
+                  if (lecs == null || lecs < 0) {
+                    return 'Enter a valid lecture count';
+                  }
+                  return null;
+                },
+              ),
+            ] else ...[
+              // Monthly (absents, lates, half leaves)
+              TextFormField(
+                controller: _absentsController,
+                decoration: _buildInputDecoration(
+                  label: 'Full Day Absents *',
+                  icon: Icons.event_busy_outlined,
+                  iconColor: Colors.red,
+                  hint: 'Enter full absent days (0-31)',
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter number of absents';
+                  }
+                  final absents = int.tryParse(value);
+                  if (absents == null || absents < 0 || absents > 31) {
                     return 'Enter a valid number (0-31)';
                   }
-                }
-                return null;
-              },
-            ),
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _halfLeavesController,
+                decoration: _buildInputDecoration(
+                  label: 'Half Day Leaves',
+                  icon: Icons.timelapse_outlined,
+                  iconColor: Colors.orange,
+                  hint: 'Enter half-day leaves (0-62)',
+                  helper: '2 half-leaves = 1 absent deduction',
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    final halfLeaves = int.tryParse(value);
+                    if (halfLeaves == null || halfLeaves < 0 || halfLeaves > 62) {
+                      return 'Enter a valid number (0-62)';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _latesController,
+                decoration: _buildInputDecoration(
+                  label: 'Late Arrivals',
+                  icon: Icons.schedule,
+                  iconColor: Colors.amber.shade700,
+                  hint: 'Enter late arrivals (0-31)',
+                  helper: '3 lates = 1 absent deduction',
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    final lates = int.tryParse(value);
+                    if (lates == null || lates < 0 || lates > 31) {
+                      return 'Enter a valid number (0-31)';
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: 32),
 
             // Submit Button
@@ -688,6 +836,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildInfoCard() {
+    final type = _selectedStaff?.salaryType ?? 'Monthly';
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -705,7 +855,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Icon(Icons.info_outline, color: Colors.indigo.shade700),
               const SizedBox(width: 8),
               Text(
-                'Calculation Rules',
+                'Calculation Rules ($type)',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.indigo.shade800,
@@ -715,26 +865,55 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildRuleItem(
-            icon: Icons.event_busy,
-            color: Colors.red,
-            text: 'Full Absent = 1 day deduction',
-          ),
-          _buildRuleItem(
-            icon: Icons.timelapse,
-            color: Colors.orange,
-            text: '2 Half Leaves = 1 day deduction',
-          ),
-          _buildRuleItem(
-            icon: Icons.schedule,
-            color: Colors.amber.shade700,
-            text: '3 Late Arrivals = 1 day deduction',
-          ),
-          _buildRuleItem(
-            icon: Icons.calculate,
-            color: Colors.indigo,
-            text: 'Per day = Salary ÷ 30',
-          ),
+          if (type == 'Hourly') ...[
+            _buildRuleItem(
+              icon: Icons.timer,
+              color: Colors.blue,
+              text: 'Final Salary = workingHours × hourlyRate',
+            ),
+            _buildRuleItem(
+              icon: Icons.history_toggle_off,
+              color: Colors.teal,
+              text: 'Summed from daily check-ins if not manually overridden',
+            ),
+            _buildRuleItem(
+              icon: Icons.monetization_on_outlined,
+              color: Colors.green,
+              text: 'Hourly rate is configured per staff member profile',
+            ),
+          ] else if (type == 'Lecture') ...[
+            _buildRuleItem(
+              icon: Icons.school,
+              color: Colors.purple,
+              text: 'Final Salary = totalLectures × lectureRate',
+            ),
+            _buildRuleItem(
+              icon: Icons.monetization_on_outlined,
+              color: Colors.green,
+              text: 'Rate per lecture is configured as basic salary in staff profile',
+            ),
+          ] else ...[
+            _buildRuleItem(
+              icon: Icons.event_busy,
+              color: Colors.red,
+              text: 'Full Absent = 1 day deduction',
+            ),
+            _buildRuleItem(
+              icon: Icons.timelapse,
+              color: Colors.orange,
+              text: '2 Half Leaves = 1 day deduction',
+            ),
+            _buildRuleItem(
+              icon: Icons.schedule,
+              color: Colors.amber.shade700,
+              text: '3 Late Arrivals = 1 day deduction',
+            ),
+            _buildRuleItem(
+              icon: Icons.calculate,
+              color: Colors.indigo,
+              text: 'Per day = Salary ÷ 30',
+            ),
+          ],
         ],
       ),
     );

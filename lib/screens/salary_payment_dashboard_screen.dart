@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
 import '../services/firebase_service.dart';
 import '../models/salary.dart';
+import '../models/campus.dart';
 import '../shared/widgets/stat_card_widget.dart';
 import '../shared/widgets/glass_card_widget.dart';
 import 'widgets/salary_payment_bottom_sheet.dart';
@@ -21,13 +22,16 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
 
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
-  String? _selectedCampus;
   String _searchQuery = '';
   String _filterStatus = 'All'; // All, Paid, Partial Paid, Pending
   
   bool _isSuperAdmin = false;
   String? _userCampus;
-  List<String> _campusNames = ['All Campuses'];
+  List<Campus> _campuses = [];
+  Map<String, String> _campusMap = {};
+  String _selectedCampusId = 'All Campuses';
+  
+  final Set<String> _selectedSalaryIds = {};
 
   @override
   void initState() {
@@ -51,22 +55,23 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
         final campuses = await _firebaseService.getCampuses();
         if (mounted) {
           setState(() {
-            _campusNames = ['All Campuses', ...campuses.map((c) => c.name)];
-            _selectedCampus = 'All Campuses';
+            _campuses = campuses;
+            _campusMap = {for (var c in campuses) c.id: c.name};
+            _selectedCampusId = 'All Campuses';
           });
         }
       } catch (e) {
         // error
       }
     } else {
-      _selectedCampus = _userCampus;
+      _selectedCampusId = _userCampus ?? 'All Campuses';
     }
   }
 
   String? get _effectiveCampus {
     if (!_isSuperAdmin) return _userCampus;
-    if (_selectedCampus == 'All Campuses') return null;
-    return _selectedCampus;
+    if (_selectedCampusId == 'All Campuses') return null;
+    return _selectedCampusId;
   }
 
   List<Salary> _filterSalaries(List<Salary> salaries) {
@@ -95,20 +100,30 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
         return ListView(
           padding: const EdgeInsets.all(24),
           shrinkWrap: true,
-          children: _campusNames
-              .map(
-                (campus) => ListTile(
-                  title: Text(campus),
-                  trailing: _selectedCampus == campus
-                      ? const Icon(Icons.check, color: Colors.deepPurple)
-                      : null,
-                  onTap: () {
-                    setState(() => _selectedCampus = campus);
-                    Navigator.pop(context);
-                  },
-                ),
-              )
-              .toList(),
+          children: [
+            ListTile(
+              title: const Text('All Campuses'),
+              trailing: _selectedCampusId == 'All Campuses'
+                  ? const Icon(Icons.check, color: Colors.deepPurple)
+                  : null,
+              onTap: () {
+                setState(() => _selectedCampusId = 'All Campuses');
+                Navigator.pop(context);
+              },
+            ),
+            ..._campuses.map(
+              (c) => ListTile(
+                title: Text(c.name),
+                trailing: _selectedCampusId == c.id
+                    ? const Icon(Icons.check, color: Colors.deepPurple)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedCampusId = c.id);
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -159,6 +174,89 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
             backgroundColor: Colors.green,
           ),
         );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  // Selection mode is always active via visible checkboxes
+
+  void _toggleSalarySelection(String id) {
+    setState(() {
+      if (_selectedSalaryIds.contains(id)) {
+        _selectedSalaryIds.remove(id);
+      } else {
+        _selectedSalaryIds.add(id);
+      }
+    });
+  }
+
+  Future<void> _handleRecalculateSelected() async {
+    if (_selectedSalaryIds.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Calculate Selected?'),
+        content: Text(
+          'Recalculate salaries for the ${_selectedSalaryIds.length} selected staff members?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            child: const Text('Calculate'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Calculating selected salaries...')),
+    );
+
+    try {
+      final salaries = await _firebaseService.getSalaries(
+        month: _selectedMonth,
+        year: _selectedYear,
+        campus: _effectiveCampus,
+      );
+      
+      final selectedSalaries = salaries.where((s) => _selectedSalaryIds.contains(s.id)).toList();
+      
+      for (final salary in selectedSalaries) {
+        await _firebaseService.recalculateAndSaveSalary(
+          salary.staffId,
+          _selectedMonth,
+          _selectedYear,
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Calculation complete for selected staff!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        setState(() {
+          _selectedSalaryIds.clear();
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -238,19 +336,37 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Salary Payments',
-                                  style: TextStyle(
+                                Text(
+                                  _selectedSalaryIds.isNotEmpty 
+                                      ? '${_selectedSalaryIds.length} Selected' 
+                                      : 'Salary Payments',
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 28,
+                                    fontSize: 26,
                                     letterSpacing: -0.5,
                                   ),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                                  tooltip: 'Recalculate All',
-                                  onPressed: _handleRecalculate,
+                                Row(
+                                  children: [
+                                    if (_selectedSalaryIds.isNotEmpty) ...[
+                                      IconButton(
+                                        icon: const Icon(Icons.close_rounded, color: Colors.white),
+                                        tooltip: 'Clear Selection',
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedSalaryIds.clear();
+                                          });
+                                        },
+                                      ),
+                                    ] else ...[
+                                      IconButton(
+                                        icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                                        tooltip: 'Recalculate All',
+                                        onPressed: _handleRecalculate,
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
                             ),
@@ -357,7 +473,9 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
                             const SizedBox(width: 8),
                             if (_isSuperAdmin) ...[
                               _buildFilterChip(
-                                label: _selectedCampus ?? 'All Campuses',
+                                label: _selectedCampusId == 'All Campuses'
+                                    ? 'All Campuses'
+                                    : (_campusMap[_selectedCampusId] ?? _selectedCampusId),
                                 icon: Icons.business_rounded,
                                 isDark: isDark,
                                 onTap: _showCampusSelector,
@@ -397,85 +515,256 @@ class _SalaryPaymentDashboardScreenState extends State<SalaryPaymentDashboardScr
                   ),
                 )
               else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final salary = filteredSalaries[index];
-                        final hasAdvance = salary.advanceAmount > 0;
-                        final isOverpaid = salary.paidAmount > salary.totalSalary;
-                        final hasSpecialStatus = hasAdvance || isOverpaid;
-                        final avatarColor = hasSpecialStatus ? Colors.purple : salary.statusColor;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GlassCard(
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(16),
-                              leading: CircleAvatar(
-                                backgroundColor: avatarColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person, color: avatarColor),
-                              ),
-                              title: Text(salary.staffName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Net: ${salary.formattedTotalSalary}', style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontWeight: FontWeight.w600)),
-                                    const SizedBox(height: 4),
-                                    Text('Paid: Rs ${NumberFormat('#,##0').format(salary.paidAmount)}', style: const TextStyle(color: Colors.green, fontSize: 12)),
-                                    if (hasAdvance) ...[
-                                      const SizedBox(height: 4),
-                                      Text('Advance: Rs ${NumberFormat('#,##0').format(salary.advanceAmount)}', style: const TextStyle(color: Colors.purple, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ],
-                                    if (isOverpaid) ...[
-                                      const SizedBox(height: 4),
-                                      Text('Overpaid: Rs ${NumberFormat('#,##0').format(salary.paidAmount - salary.totalSalary)}', style: const TextStyle(color: Colors.purple, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: salary.statusColor.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      salary.statusText,
-                                      style: TextStyle(color: salary.statusColor, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                                ],
-                              ),
-                              onTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (_) => SalaryPaymentBottomSheet(salary: salary),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                      childCount: filteredSalaries.length,
-                    ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final salary = filteredSalaries[index];
+                      return _buildPaymentCard(salary, context, isDark, theme);
+                    },
+                    childCount: filteredSalaries.length,
                   ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              const SliverToBoxAdapter(child: SizedBox(height: 80)),
             ],
           );
         },
       ),
+      floatingActionButton: _selectedSalaryIds.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: _handleRecalculateSelected,
+              backgroundColor: Colors.deepPurple,
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+              label: Text(
+                'Calculate Selected (${_selectedSalaryIds.length})',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildPaymentCard(Salary salary, BuildContext context, bool isDark, ThemeData theme) {
+    final hasAdvance = salary.advanceAmount > 0;
+    final isOverpaid = salary.paidAmount > salary.totalSalary;
+    final remaining = salary.remainingAmount;
+
+    final isSelected = _selectedSalaryIds.contains(salary.id);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: isSelected
+              ? Border.all(color: Colors.deepPurple, width: 2)
+              : null,
+        ),
+        child: GlassCard(
+          padding: const EdgeInsets.all(18),
+          borderRadius: 20,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => SalaryPaymentBottomSheet(salary: salary),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {}, // swallows tap to avoid triggering bottom sheet onTap
+                      child: Checkbox(
+                        value: isSelected,
+                        activeColor: Colors.deepPurple,
+                        onChanged: (_) => _toggleSalarySelection(salary.id),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    CircleAvatar(
+                      backgroundColor: salary.statusColor.withValues(alpha: 0.15),
+                      child: Text(
+                        salary.staffName.isNotEmpty ? salary.staffName[0].toUpperCase() : '?',
+                        style: TextStyle(
+                          color: salary.statusColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            salary.staffName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            _campusMap[salary.campus] ?? salary.campus ?? 'Unknown Campus',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? Colors.white60 : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: salary.statusColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      salary.statusText,
+                      style: TextStyle(
+                        color: salary.statusColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildCardStat(
+                    'Net Salary',
+                    'Rs ${NumberFormat.compact().format(salary.totalSalary)}',
+                    color: Colors.blue,
+                  ),
+                  _buildCardStat(
+                    'Paid',
+                    'Rs ${NumberFormat.compact().format(salary.paidAmount)}',
+                    color: Colors.green,
+                  ),
+                  _buildCardStat(
+                    'Remaining',
+                    'Rs ${NumberFormat.compact().format(remaining)}',
+                    color: Colors.orange,
+                    isBold: true,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    salary.salaryType == 'hourly'
+                        ? Icons.access_time_rounded
+                        : salary.salaryType == 'lecture_based'
+                            ? Icons.school_rounded
+                            : Icons.calendar_month_rounded,
+                    size: 14,
+                    color: Colors.deepPurple.shade300,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      (salary.calculationDetails != null && salary.calculationDetails!.isNotEmpty)
+                          ? salary.calculationDetails!
+                          : salary.salaryType == 'hourly'
+                              ? '${salary.totalHours.toStringAsFixed(1)} hours @ Rs ${salary.hourlyRate.toStringAsFixed(0)}/hr'
+                              : salary.salaryType == 'lecture_based'
+                                  ? '${salary.workingDays.toStringAsFixed(0)} lectures'
+                                  : 'Absents: ${salary.absents.toStringAsFixed(1)} days',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white70 : Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              if (hasAdvance || isOverpaid) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    if (hasAdvance) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Advance: Rs ${NumberFormat.compact().format(salary.advanceAmount)}',
+                          style: const TextStyle(
+                            color: Colors.purple,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    if (isOverpaid) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Overpaid: Rs ${NumberFormat.compact().format(salary.paidAmount - salary.totalSalary)}',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  }
+
+  Widget _buildCardStat(
+    String label,
+    String value, {
+    Color? color,
+    bool isBold = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Colors.grey),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 

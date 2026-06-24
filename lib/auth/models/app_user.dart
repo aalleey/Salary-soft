@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// The hierarchical roles in SalarySoft mapped from the Node.js API.
-enum UserRole { superAdmin, clientAdmin, staff }
+enum UserRole { superAdmin, clientAdmin, lowerAdmin, staff }
 
 extension UserRoleX on UserRole {
   /// Human-readable display name.
@@ -11,6 +11,8 @@ extension UserRoleX on UserRole {
         return 'App Owner';
       case UserRole.clientAdmin:
         return 'Client Admin';
+      case UserRole.lowerAdmin:
+        return 'Admin (Sub-admin)';
       case UserRole.staff:
         return 'Staff';
     }
@@ -22,6 +24,8 @@ extension UserRoleX on UserRole {
       case UserRole.superAdmin:
         return 'SUPER ADMIN';
       case UserRole.clientAdmin:
+        return 'ADMIN';
+      case UserRole.lowerAdmin:
         return 'ADMIN';
       case UserRole.staff:
         return 'STAFF';
@@ -35,6 +39,8 @@ extension UserRoleX on UserRole {
         return 'super_admin';
       case UserRole.clientAdmin:
         return 'client_admin';
+      case UserRole.lowerAdmin:
+        return 'lower_admin';
       case UserRole.staff:
         return 'staff';
     }
@@ -47,6 +53,8 @@ extension UserRoleX on UserRole {
         return const Color(0xFFF806CC); // Magenta
       case UserRole.clientAdmin:
         return const Color(0xFF7C3AED); // Purple
+      case UserRole.lowerAdmin:
+        return const Color(0xFF7C3AED); // Purple
       case UserRole.staff:
         return const Color(0xFF3B82F6); // Blue
     }
@@ -58,6 +66,8 @@ extension UserRoleX on UserRole {
       case UserRole.superAdmin:
         return const Color(0xFF7C3AED);
       case UserRole.clientAdmin:
+        return const Color(0xFF4C1D95);
+      case UserRole.lowerAdmin:
         return const Color(0xFF4C1D95);
       case UserRole.staff:
         return const Color(0xFF1D4ED8);
@@ -73,6 +83,8 @@ extension UserRoleX on UserRole {
         return Icons.admin_panel_settings_rounded;
       case UserRole.clientAdmin:
         return Icons.manage_accounts_rounded;
+      case UserRole.lowerAdmin:
+        return Icons.manage_accounts_rounded;
       case UserRole.staff:
         return Icons.badge_rounded;
     }
@@ -80,6 +92,7 @@ extension UserRoleX on UserRole {
 
   bool get isSuperAdmin => this == UserRole.superAdmin;
   bool get isClientAdmin => this == UserRole.clientAdmin;
+  bool get isLowerAdmin => this == UserRole.lowerAdmin;
   bool get isStaff => this == UserRole.staff;
 }
 
@@ -90,7 +103,10 @@ UserRole roleFromString(String? raw) {
     case 'super_admin':
       return UserRole.superAdmin;
     case 'client_admin':
+    case 'admin':
       return UserRole.clientAdmin;
+    case 'lower_admin':
+      return UserRole.lowerAdmin;
     case 'staff':
       return UserRole.staff;
     default:

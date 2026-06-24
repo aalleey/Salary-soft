@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/advance.dart';
 import '../employee_salary_history_screen.dart';
+import '../../services/salary_calculation_service.dart';
 
 class SalaryPaymentBottomSheet extends StatefulWidget {
   final Salary salary;
@@ -20,27 +21,91 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
   final FirebaseService _firebaseService = FirebaseService();
   late TextEditingController _amountController;
   late TextEditingController _notesController;
+  late TextEditingController _bonusController;
+  late TextEditingController _deductionsController;
+
   DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
+
+  double _calculatedNetPayable = 0.0;
+  double _calculatedDeductions = 0.0;
 
   @override
   void initState() {
     super.initState();
-    // Default to remaining amount
+    _notesController = TextEditingController(text: widget.salary.notes ?? '');
+    _bonusController = TextEditingController(text: widget.salary.bonus.toStringAsFixed(0));
+    _deductionsController = TextEditingController(text: widget.salary.otherDeductions.toStringAsFixed(0));
+    
+    _calculatedNetPayable = widget.salary.totalSalary;
+    _calculatedDeductions = widget.salary.deduction;
+
     final remaining = widget.salary.remainingAmount;
     _amountController = TextEditingController(text: remaining > 0 ? remaining.toStringAsFixed(0) : '');
-    _notesController = TextEditingController(text: widget.salary.notes ?? '');
+
     if (widget.salary.paidDate != null) {
       try {
         _selectedDate = DateTime.parse(widget.salary.paidDate!);
       } catch (_) {}
     }
+
+    _bonusController.addListener(_recalculateLiveSalary);
+    _deductionsController.addListener(_recalculateLiveSalary);
+  }
+
+  void _recalculateLiveSalary() {
+    final double bonusVal = double.tryParse(_bonusController.text) ?? 0.0;
+    final double otherDeductionsVal = double.tryParse(_deductionsController.text) ?? 0.0;
+    
+    double baseSalaryForCalc = widget.salary.basicSalary;
+    if (widget.salary.salaryType == 'hourly') {
+      baseSalaryForCalc = 0.0;
+    } else if (widget.salary.salaryType == 'lecture_based') {
+      baseSalaryForCalc = widget.salary.workingDays > 0 
+          ? (widget.salary.basicSalary / widget.salary.workingDays) 
+          : 0.0;
+    } else {
+      // Monthly
+      final isPresentBased = widget.salary.calculationDetails?.contains('presents') ?? false;
+      if (isPresentBased && widget.salary.workingDays > 0) {
+        baseSalaryForCalc = widget.salary.basicSalary * 30.0 / widget.salary.workingDays;
+      }
+    }
+
+    final isPresentBased = widget.salary.calculationDetails?.contains('presents') ?? false;
+    final calcResult = SalaryCalculationService.calculateSalary(
+      salaryType: widget.salary.salaryType,
+      basicSalary: baseSalaryForCalc,
+      hourlyRate: widget.salary.hourlyRate,
+      workingHours: widget.salary.totalHours,
+      workingDays: widget.salary.workingDays,
+      absents: widget.salary.absents,
+      lates: widget.salary.lates.toDouble(),
+      halfLeaves: 0.0,
+      advance: widget.salary.advanceAmount,
+      otherDeductions: otherDeductionsVal,
+      bonus: bonusVal,
+      calculationType: isPresentBased ? 'present_based' : 'absent_based',
+    );
+
+    setState(() {
+      _calculatedNetPayable = calcResult.totalSalary;
+      _calculatedDeductions = calcResult.deduction;
+      
+      final double paid = widget.salary.paidAmount;
+      final double remaining = _calculatedNetPayable - paid;
+      _amountController.text = remaining > 0 ? remaining.toStringAsFixed(0) : '';
+    });
   }
 
   @override
   void dispose() {
+    _bonusController.removeListener(_recalculateLiveSalary);
+    _deductionsController.removeListener(_recalculateLiveSalary);
     _amountController.dispose();
     _notesController.dispose();
+    _bonusController.dispose();
+    _deductionsController.dispose();
     super.dispose();
   }
 
@@ -57,7 +122,10 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
       return;
     }
 
-    final remainingBalance = widget.salary.remainingAmount;
+    final double bonusVal = double.tryParse(_bonusController.text) ?? 0.0;
+    final double otherDeductionsVal = double.tryParse(_deductionsController.text) ?? 0.0;
+    
+    final remainingBalance = _calculatedNetPayable - widget.salary.paidAmount;
 
     // Handle overpayment
     if (amount > remainingBalance && remainingBalance > 0) {
@@ -93,13 +161,16 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
       try {
         // 1. Pay exactly the remaining balance
         final totalPaidNow = widget.salary.paidAmount + remainingBalance;
-        await _firebaseService.paySalary(
-          widget.salary.id,
-          totalPaidNow,
-          _selectedDate.toIso8601String(),
-          _notesController.text.trim(),
-          'Paid', // Status is definitely 'Paid' since we cover the exact remaining balance
-          widget.salary.totalSalary,
+        await _firebaseService.updateSalaryPayment(
+          salaryId: widget.salary.id,
+          bonus: bonusVal,
+          otherDeductions: otherDeductionsVal,
+          totalDeduction: _calculatedDeductions,
+          totalSalary: _calculatedNetPayable,
+          paidAmount: totalPaidNow,
+          paidDate: _selectedDate.toIso8601String(),
+          notes: _notesController.text.trim(),
+          status: 'Paid', // Status is Paid since we cover the remaining balance
         );
 
         // 2. Create the advance for next month
@@ -145,7 +216,7 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
     // Determine status for normal payment
     final totalPaidNow = widget.salary.paidAmount + amount;
     String newStatus = 'Pending';
-    if (totalPaidNow >= widget.salary.totalSalary) {
+    if (totalPaidNow >= _calculatedNetPayable && _calculatedNetPayable > 0) {
       newStatus = 'Paid';
     } else if (totalPaidNow > 0) {
       newStatus = 'Partial Paid';
@@ -154,13 +225,16 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
     setState(() => _isLoading = true);
 
     try {
-      await _firebaseService.paySalary(
-        widget.salary.id,
-        totalPaidNow,
-        _selectedDate.toIso8601String(),
-        _notesController.text.trim(),
-        newStatus,
-        widget.salary.totalSalary,
+      await _firebaseService.updateSalaryPayment(
+        salaryId: widget.salary.id,
+        bonus: bonusVal,
+        otherDeductions: otherDeductionsVal,
+        totalDeduction: _calculatedDeductions,
+        totalSalary: _calculatedNetPayable,
+        paidAmount: totalPaidNow,
+        paidDate: _selectedDate.toIso8601String(),
+        notes: _notesController.text.trim(),
+        status: newStatus,
       );
       if (mounted) {
         Navigator.pop(context);
@@ -314,8 +388,7 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
               style: TextStyle(color: theme.hintColor, fontSize: 16),
             ),
             const SizedBox(height: 24),
-            
-            // Overview Container
+                       // Overview Container
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -324,21 +397,78 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Basic Salary', widget.salary.basicSalary, theme),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow('Absents/Lates Deduction', -widget.salary.deduction + widget.salary.advanceAmount, theme, isDeduction: true),
+                  if (widget.salary.salaryType == 'hourly') ...[
+                    _buildSummaryRow('Hourly Rate', widget.salary.hourlyRate, theme),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow('Working Hours', widget.salary.totalHours, theme, showCurrency: false),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow('Gross Salary', widget.salary.hourlyRate * widget.salary.totalHours, theme),
+                  ] else if (widget.salary.salaryType == 'lecture_based') ...[
+                    _buildSummaryRow('Lecture Rate', widget.salary.workingDays > 0 ? (widget.salary.basicSalary / widget.salary.workingDays) : widget.salary.basicSalary, theme),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow('Lectures Conducted', widget.salary.workingDays, theme, showCurrency: false),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow('Gross Salary', widget.salary.basicSalary, theme),
+                  ] else ...[
+                    _buildSummaryRow('Basic Salary', widget.salary.basicSalary, theme),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow('Absents Deduction', -(widget.salary.deduction - widget.salary.advanceAmount - widget.salary.otherDeductions), theme, isDeduction: true),
+                  ],
                   const SizedBox(height: 8),
                   _buildSummaryRow('Advances Deduction', -widget.salary.advanceAmount, theme, isDeduction: true),
+                  const SizedBox(height: 8),
+                  _buildSummaryRow('Bonus', double.tryParse(_bonusController.text) ?? 0.0, theme, color: Colors.green),
+                  const SizedBox(height: 8),
+                  _buildSummaryRow('Other Deductions', -(double.tryParse(_deductionsController.text) ?? 0.0), theme, isDeduction: true),
                   const Divider(height: 24),
-                  _buildSummaryRow('Net Payable', widget.salary.totalSalary, theme, isBold: true),
+                  _buildSummaryRow('Net Payable', _calculatedNetPayable, theme, isBold: true),
                   const SizedBox(height: 8),
                   _buildSummaryRow('Already Paid', widget.salary.paidAmount, theme, color: Colors.green),
                   const SizedBox(height: 8),
-                  _buildSummaryRow('Remaining Balance', widget.salary.remainingAmount, theme, isBold: true, color: Colors.orange),
+                  _buildSummaryRow('Remaining Balance', _calculatedNetPayable - widget.salary.paidAmount, theme, isBold: true, color: Colors.orange),
                 ],
               ),
             ),
             const SizedBox(height: 24),
+
+            const Text(
+              'ADJUSTMENTS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _bonusController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Bonus (Rs)',
+                      prefixIcon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _deductionsController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Deductions (Rs)',
+                      prefixIcon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
             // Form
             TextField(
@@ -405,7 +535,11 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
     );
   }
 
-  Widget _buildSummaryRow(String label, double value, ThemeData theme, {bool isDeduction = false, bool isBold = false, Color? color}) {
+  Widget _buildSummaryRow(String label, double value, ThemeData theme, {bool isDeduction = false, bool isBold = false, Color? color, bool showCurrency = true}) {
+    final valueText = showCurrency
+        ? 'Rs ${NumberFormat('#,##0').format(value.abs())}'
+        : NumberFormat('#,##0.#').format(value.abs());
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -418,7 +552,7 @@ class _SalaryPaymentBottomSheetState extends State<SalaryPaymentBottomSheet> {
           ),
         ),
         Text(
-          'Rs ${NumberFormat('#,##0').format(value.abs())}',
+          valueText,
           style: TextStyle(
             color: color ?? (isDeduction ? Colors.red : (isBold ? theme.textTheme.bodyLarge?.color : theme.textTheme.bodyMedium?.color)),
             fontWeight: isBold ? FontWeight.bold : FontWeight.w500,

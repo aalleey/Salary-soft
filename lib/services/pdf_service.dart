@@ -245,18 +245,20 @@ class PdfService {
       headerStyle: pw.TextStyle(
         color: PdfColors.white,
         fontWeight: pw.FontWeight.bold,
-        fontSize: 9,
+        fontSize: 8,
       ),
       rowDecoration: const pw.BoxDecoration(
         border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey200)),
       ),
-      cellStyle: const pw.TextStyle(fontSize: 8),
-      cellPadding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      cellStyle: const pw.TextStyle(fontSize: 7),
+      cellPadding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 6),
       cellAlignments: {
         0: pw.Alignment.centerLeft,
+        1: pw.Alignment.centerLeft,
+        2: pw.Alignment.center,
         3: pw.Alignment.centerRight,
         4: pw.Alignment.center,
-        5: pw.Alignment.center,
+        5: pw.Alignment.centerRight,
         6: pw.Alignment.centerRight,
         7: pw.Alignment.centerRight,
         8: pw.Alignment.centerRight,
@@ -265,23 +267,48 @@ class PdfService {
       headers: [
         'Name',
         'Campus',
-        'Role',
-        'Basic',
-        'Abs',
-        'Late',
+        'Type',
+        'Rate',
+        'Qty/Hrs/Days',
+        'Basic/Gross',
         'Adv',
         'Deduct',
         'Net Pay',
         'Status',
       ],
       data: salaries.map((s) {
+        final typeStr = s.salaryType == 'hourly'
+            ? 'Hourly'
+            : s.salaryType == 'lecture_based'
+                ? 'Lecture'
+                : 'Monthly';
+
+        String rateStr = '';
+        if (s.salaryType == 'hourly') {
+          rateStr = 'Rs ${_currencyFormat.format(s.hourlyRate)}/hr';
+        } else if (s.salaryType == 'lecture_based') {
+          final rate = s.workingDays > 0 ? (s.basicSalary / s.workingDays) : 0.0;
+          rateStr = 'Rs ${_currencyFormat.format(rate)}/lec';
+        } else {
+          rateStr = 'Rs ${_currencyFormat.format(s.basicSalary)}/mo';
+        }
+
+        String qtyStr = '';
+        if (s.salaryType == 'hourly') {
+          qtyStr = '${s.totalHours.toStringAsFixed(1)} hrs';
+        } else if (s.salaryType == 'lecture_based') {
+          qtyStr = '${s.workingDays.toStringAsFixed(0)} lecs';
+        } else {
+          qtyStr = 'Abs: ${s.absents.toStringAsFixed(1)}';
+        }
+
         return [
           s.staffName,
           s.campus ?? '-',
-          '-', // Role not in model currently, placeholder
+          typeStr,
+          rateStr,
+          qtyStr,
           _currencyFormat.format(s.basicSalary),
-          s.absents.toString(),
-          s.lates.toString(),
           _currencyFormat.format(s.advanceAmount),
           _currencyFormat.format(s.deduction),
           _currencyFormat.format(s.totalSalary),
@@ -511,11 +538,24 @@ class PdfService {
                     ),
                   ),
                   pw.SizedBox(height: 8),
-                  _payslipRow('Basic Salary', salary.basicSalary),
+                  if (salary.salaryType == 'hourly')
+                    _payslipRow(
+                      'Hourly Pay (${salary.totalHours.toStringAsFixed(1)} hrs @ Rs ${salary.hourlyRate.toStringAsFixed(0)}/hr)',
+                      salary.basicSalary,
+                    )
+                  else if (salary.salaryType == 'lecture_based')
+                    _payslipRow(
+                      'Lecture Pay (${salary.workingDays.toStringAsFixed(0)} lecs)',
+                      salary.basicSalary,
+                    )
+                  else
+                    _payslipRow('Basic Salary', salary.basicSalary),
+                  if (salary.bonus > 0)
+                    _payslipRow('Performance Bonus', salary.bonus),
                   pw.Divider(),
                   _payslipRow(
                     'Total Earnings',
-                    salary.basicSalary,
+                    salary.basicSalary + salary.bonus,
                     isBold: true,
                   ),
                 ],
@@ -536,11 +576,20 @@ class PdfService {
                     ),
                   ),
                   pw.SizedBox(height: 8),
-                  _payslipRow(
-                    'Absents (${salary.absents})',
-                    _calcAbsentDeduction(salary),
-                  ),
-                  _payslipRow('Advance', salary.advanceAmount),
+                  if (salary.salaryType == 'monthly' && _calcAbsentDeduction(salary) > 0)
+                    _payslipRow(
+                      'Absents (${salary.absents})',
+                      _calcAbsentDeduction(salary),
+                    ),
+                  if (salary.advanceAmount > 0)
+                    _payslipRow('Advance', salary.advanceAmount),
+                  if (salary.otherDeductions > 0)
+                    _payslipRow('Other Deductions', salary.otherDeductions),
+                  if (salary.deduction == 0 && salary.advanceAmount == 0 && salary.otherDeductions == 0)
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                      child: pw.Text('No Deductions', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey500)),
+                    ),
                   pw.Divider(),
                   _payslipRow(
                     'Total Deductions',
@@ -594,10 +643,10 @@ class PdfService {
   }
 
   double _calcAbsentDeduction(Salary s) {
-    // Helper to estimate pure attendance deduction
-    // Since we only store total deduction and advance amount,
-    // Attendance Deduction = Total Deduction - Advance Amount
-    return s.deduction - s.advanceAmount;
+    if (s.salaryType != 'monthly') return 0.0;
+    // Absent deduction is the remainder of deduction after advance and other deductions
+    final val = s.deduction - s.advanceAmount - s.otherDeductions;
+    return val < 0 ? 0.0 : val;
   }
 
   pw.Widget _payslipRow(

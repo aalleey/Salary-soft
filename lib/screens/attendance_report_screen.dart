@@ -6,6 +6,7 @@ import '../services/firebase_service.dart';
 import '../models/attendance.dart';
 import '../models/campus.dart';
 import '../models/staff.dart';
+import '../shared/widgets/glass_card_widget.dart';
 
 class AttendanceReportScreen extends StatefulWidget {
   const AttendanceReportScreen({super.key});
@@ -19,7 +20,8 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
 
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
-  String _selectedCampus = 'All';
+  String _selectedCampusId = 'All';
+  Map<String, String> _campusMap = {};
 
   List<Attendance> _attendanceList = [];
   List<Staff> _allStaff = [];
@@ -39,7 +41,7 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     _isSuperAdmin = userCampus == null || userCampus.isEmpty;
 
     if (!_isSuperAdmin && userCampus != null) {
-      _selectedCampus = userCampus;
+      _selectedCampusId = userCampus;
     }
 
     await Future.wait([_loadCampuses(), _loadStaff()]);
@@ -50,7 +52,10 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     try {
       final campuses = await _firebaseService.getCampuses();
       if (mounted) {
-        setState(() => _campuses = campuses);
+        setState(() {
+          _campuses = campuses;
+          _campusMap = {for (var c in campuses) c.id: c.name};
+        });
       }
     } catch (e) {
       // Ignore campus loading errors
@@ -99,9 +104,9 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   List<_StaffAttendanceData> _getFilteredAttendanceData() {
     // Get staff filtered by campus
     List<Staff> filteredStaff = _allStaff;
-    if (_selectedCampus != 'All') {
+    if (_selectedCampusId != 'All') {
       filteredStaff = _allStaff
-          .where((s) => s.campus == _selectedCampus)
+          .where((s) => s.campus == _selectedCampusId)
           .toList();
     }
 
@@ -135,116 +140,196 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     int totalAbsents = 0;
     int totalLates = 0;
     int totalHalfLeaves = 0;
+    double totalHours = 0.0;
+    double totalLectures = 0.0;
+    
+    bool hasHourly = false;
+    bool hasLecture = false;
+    bool hasMonthly = false;
+
     for (var data in filteredData) {
-      totalAbsents += data.attendance.absents;
-      totalLates += data.attendance.lates;
-      totalHalfLeaves += data.attendance.halfLeaves;
+      if (data.staff.salaryType == 'Hourly') {
+        totalHours += data.attendance.totalWorkingHours;
+        hasHourly = true;
+      } else if (data.staff.salaryType == 'Lecture') {
+        totalLectures += data.attendance.totalLectures;
+        hasLecture = true;
+      } else {
+        totalAbsents += data.attendance.absents;
+        totalLates += data.attendance.lates;
+        totalHalfLeaves += data.attendance.halfLeaves;
+        hasMonthly = true;
+      }
     }
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: true,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                'Attendance Report',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.teal.shade700, Colors.cyan.shade500],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Month/Year Selector
-                  _buildMonthYearSelector(isDark),
-                  const SizedBox(height: 16),
-
-                  // Campus Filter (for super admins)
-                  if (_isSuperAdmin) ...[
-                    _buildCampusFilter(isDark),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Summary Cards
-                  _buildSummaryCards(
-                    filteredData.length,
-                    totalAbsents,
-                    totalLates,
-                    totalHalfLeaves,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Header
-                  Text(
-                    'Staff Attendance Details',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.grey.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Gradient Background
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        const Color(0xFF0F2027),
+                        const Color(0xFF203A43),
+                        const Color(0xFF2C5364),
+                      ]
+                    : [
+                        const Color(0xFFE0EAFC),
+                        const Color(0xFFCFDEF3),
+                      ],
               ),
             ),
           ),
-
-          // Attendance List
-          if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (filteredData.isEmpty)
-            SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.calendar_today_outlined,
-                      size: 64,
-                      color: Colors.grey.shade400,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No staff found',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
+          // Glowing orbs
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark 
+                    ? Colors.tealAccent.withValues(alpha: 0.15)
+                    : Colors.tealAccent.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 140.0,
+                floating: true,
+                pinned: true,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                flexibleSpace: ClipPath(
+                  clipper: _HeaderClipper(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF004d40),
+                          Colors.teal.shade700,
+                          const Color(0xFF00acc1),
+                        ],
                       ),
                     ),
-                  ],
+                    child: const Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 20, bottom: 24),
+                        child: Text(
+                          'Attendance Report',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 26,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) =>
-                      _buildAttendanceCard(filteredData[index], isDark),
-                  childCount: filteredData.length,
-                ),
-              ),
-            ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Month/Year Selector
+                      _buildMonthYearSelector(isDark),
+                      const SizedBox(height: 16),
 
-          const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
+                      // Campus Filter (for super admins)
+                      if (_isSuperAdmin) ...[
+                        _buildCampusFilter(isDark),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Summary Cards
+                      _buildSummaryCards(
+                        staffCount: filteredData.length,
+                        absents: totalAbsents,
+                        lates: totalLates,
+                        halfLeaves: totalHalfLeaves,
+                        totalHours: totalHours,
+                        totalLectures: totalLectures,
+                        hasHourly: hasHourly,
+                        hasLecture: hasLecture,
+                        hasMonthly: hasMonthly,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Header
+                      Text(
+                        'Staff Attendance Details',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.grey.shade800,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Attendance List
+              if (_isLoading)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (filteredData.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 64,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No staff found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) =>
+                          _buildAttendanceCard(filteredData[index], isDark),
+                      childCount: filteredData.length,
+                    ),
+                  ),
+                ),
+
+              const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
+            ],
+          ),
         ],
       ),
     );
@@ -334,23 +419,23 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildCampusChip('All', isDark),
-            ..._campuses.map((c) => _buildCampusChip(c.name, isDark)),
+            _buildCampusChip('All', 'All', isDark),
+            ..._campuses.map((c) => _buildCampusChip(c.id, c.name, isDark)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCampusChip(String campus, bool isDark) {
-    final isSelected = _selectedCampus == campus;
+  Widget _buildCampusChip(String campusId, String label, bool isDark) {
+    final isSelected = _selectedCampusId == campusId;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
-        label: Text(campus),
+        label: Text(label),
         selected: isSelected,
         onSelected: (_) {
-          setState(() => _selectedCampus = campus);
+          setState(() => _selectedCampusId = campusId);
         },
         backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
         selectedColor: Colors.teal.shade100,
@@ -362,50 +447,72 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     );
   }
 
-  Widget _buildSummaryCards(
-    int staffCount,
-    int absents,
-    int lates,
-    int halfLeaves,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSummaryCard(
+  Widget _buildSummaryCards({
+    required int staffCount,
+    required int absents,
+    required int lates,
+    required int halfLeaves,
+    required double totalHours,
+    required double totalLectures,
+    required bool hasHourly,
+    required bool hasLecture,
+    required bool hasMonthly,
+    required bool isDark,
+  }) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _buildSummaryCard(
             'Staff',
             staffCount.toString(),
             Icons.people,
             Colors.blue,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildSummaryCard(
-            'Absents',
-            absents.toString(),
-            Icons.event_busy,
-            Colors.red,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildSummaryCard(
-            'Lates',
-            lates.toString(),
-            Icons.access_time,
-            Colors.orange,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildSummaryCard(
-            'Half',
-            halfLeaves.toString(),
-            Icons.timelapse,
-            Colors.amber,
-          ),
-        ),
-      ],
+          if (hasMonthly) ...[
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              'Absents',
+              absents.toString(),
+              Icons.event_busy,
+              Colors.red,
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              'Lates',
+              lates.toString(),
+              Icons.access_time,
+              Colors.orange,
+            ),
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              'Half Leaves',
+              halfLeaves.toString(),
+              Icons.timelapse,
+              Colors.amber,
+            ),
+          ],
+          if (hasHourly) ...[
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              'Hours',
+              totalHours.toStringAsFixed(totalHours == totalHours.roundToDouble() ? 0 : 1),
+              Icons.access_time_filled_rounded,
+              Colors.purple,
+            ),
+          ],
+          if (hasLecture) ...[
+            const SizedBox(width: 12),
+            _buildSummaryCard(
+              'Lectures',
+              totalLectures.toStringAsFixed(totalLectures == totalLectures.roundToDouble() ? 0 : 1),
+              Icons.school_rounded,
+              Colors.teal,
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -416,30 +523,43 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withAlpha(180), color],
+          colors: [color.withValues(alpha: 0.8), color],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white, size: 20),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.25),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          Text(
-            title,
-            style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 11),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                title,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11),
+              ),
+            ],
           ),
         ],
       ),
@@ -449,31 +569,31 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   Widget _buildAttendanceCard(_StaffAttendanceData data, bool isDark) {
     final staff = data.staff;
     final attendance = data.attendance;
-    final hasAttendance =
-        attendance.absents > 0 ||
-        attendance.lates > 0 ||
-        attendance.halfLeaves > 0;
-    final hasRecord = attendance.id.isNotEmpty; // Check if record exists in DB
+    final hasPerformance = staff.salaryType == 'Hourly'
+        ? attendance.totalWorkingHours > 0
+        : staff.salaryType == 'Lecture'
+            ? attendance.totalLectures > 0
+            : (attendance.absents == 0 && attendance.lates == 0 && attendance.halfLeaves == 0);
+    final hasRecord = attendance.id.isNotEmpty;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 1,
-      child: Padding(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GlassCard(
         padding: const EdgeInsets.all(14),
+        borderRadius: 16,
         child: Row(
           children: [
             // Staff Avatar
             CircleAvatar(
-              backgroundColor: hasAttendance
-                  ? Colors.red.shade100
-                  : Colors.green.shade100,
+              backgroundColor: hasPerformance
+                  ? Colors.green.withValues(alpha: 0.15)
+                  : Colors.red.withValues(alpha: 0.15),
               child: Text(
                 staff.name.isNotEmpty ? staff.name[0].toUpperCase() : '?',
                 style: TextStyle(
-                  color: hasAttendance
-                      ? Colors.red.shade700
-                      : Colors.green.shade700,
+                  color: hasPerformance
+                      ? Colors.green
+                      : Colors.red,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -489,33 +609,42 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                     staff.name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 15,
                     ),
                   ),
                   Text(
-                    staff.campus,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    _campusMap[staff.campus] ?? staff.campus,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white60 : Colors.grey.shade600,
+                    ),
                   ),
                 ],
               ),
             ),
 
             // Attendance Stats
-            _buildStatBadge('A', attendance.absents, Colors.red),
-            const SizedBox(width: 8),
-            _buildStatBadge('L', attendance.lates, Colors.orange),
-            const SizedBox(width: 8),
-            _buildStatBadge('H', attendance.halfLeaves, Colors.amber),
+            if (staff.salaryType == 'Hourly') ...[
+              _buildStatBadgeDouble('Hours', attendance.totalWorkingHours, Colors.purple),
+            ] else if (staff.salaryType == 'Lecture') ...[
+              _buildStatBadgeDouble('Lectures', attendance.totalLectures, Colors.teal),
+            ] else ...[
+              _buildStatBadge('Absents', attendance.absents, Colors.red),
+              const SizedBox(width: 6),
+              _buildStatBadge('Lates', attendance.lates, Colors.orange),
+              const SizedBox(width: 6),
+              _buildStatBadge('Half', attendance.halfLeaves, Colors.amber),
+            ],
 
             // Actions for super admin
             if (_isSuperAdmin) ...[
               const SizedBox(width: 8),
               if (hasRecord)
                 IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.edit_outlined,
-                    color: Colors.blue.shade400,
-                    size: 22,
+                    color: Colors.blue,
+                    size: 20,
                   ),
                   onPressed: () => _editAttendance(data),
                   tooltip: 'Edit Attendance',
@@ -524,10 +653,10 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                 )
               else
                 IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.add_circle_outline,
-                    color: Colors.green.shade400,
-                    size: 22,
+                    color: Colors.green,
+                    size: 20,
                   ),
                   onPressed: () => _editAttendance(data),
                   tooltip: 'Add Attendance',
@@ -536,10 +665,10 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                 ),
               if (hasRecord)
                 IconButton(
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.delete_outline,
-                    color: Colors.red.shade400,
-                    size: 22,
+                    color: Colors.red,
+                    size: 20,
                   ),
                   onPressed: () => _confirmDeleteAttendance(data),
                   tooltip: 'Delete Attendance',
@@ -609,44 +738,94 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   }
 
   Future<void> _editAttendance(_StaffAttendanceData data) async {
+    final staff = data.staff;
+    final isHourly = staff.salaryType == 'Hourly';
+    final isLecture = staff.salaryType == 'Lecture';
+
     final absentsController = TextEditingController(text: data.attendance.absents.toString());
     final latesController = TextEditingController(text: data.attendance.lates.toString());
     final halfLeavesController = TextEditingController(text: data.attendance.halfLeaves.toString());
+    final workingHoursController = TextEditingController(text: data.attendance.totalWorkingHours.toString());
+    final lecturesController = TextEditingController(text: data.attendance.totalLectures.toString());
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit Attendance - ${data.staff.name}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: absentsController,
-              decoration: const InputDecoration(labelText: 'Full Day Absents'),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: latesController,
-              decoration: const InputDecoration(labelText: 'Late Arrivals'),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: halfLeavesController,
-              decoration: const InputDecoration(labelText: 'Half Leaves'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Edit Attendance - ${staff.name}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isHourly) ...[
+                TextField(
+                  controller: workingHoursController,
+                  decoration: InputDecoration(
+                    labelText: 'Total Working Hours',
+                    prefixIcon: const Icon(Icons.access_time_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ] else if (isLecture) ...[
+                TextField(
+                  controller: lecturesController,
+                  decoration: InputDecoration(
+                    labelText: 'Lectures Conducted',
+                    prefixIcon: const Icon(Icons.school_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ] else ...[
+                TextField(
+                  controller: absentsController,
+                  decoration: InputDecoration(
+                    labelText: 'Full Day Absents',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: latesController,
+                  decoration: InputDecoration(
+                    labelText: 'Late Arrivals',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: halfLeavesController,
+                  decoration: InputDecoration(
+                    labelText: 'Half Leaves',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
 
     if (confirm == true) {
+      final double totalWorkingHours = double.tryParse(workingHoursController.text) ?? 0.0;
+      final double totalLectures = double.tryParse(lecturesController.text) ?? 0.0;
       final absents = int.tryParse(absentsController.text) ?? 0;
       final lates = int.tryParse(latesController.text) ?? 0;
       final halfLeaves = int.tryParse(halfLeavesController.text) ?? 0;
@@ -657,9 +836,11 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
         staffName: data.staff.name,
         month: _selectedMonth,
         year: _selectedYear,
-        absents: absents,
-        lates: lates,
-        halfLeaves: halfLeaves,
+        absents: isHourly || isLecture ? 0 : absents,
+        lates: isHourly || isLecture ? 0 : lates,
+        halfLeaves: isHourly || isLecture ? 0 : halfLeaves,
+        totalWorkingHours: isHourly ? totalWorkingHours : 0.0,
+        totalLectures: isLecture ? totalLectures : 0.0,
       );
 
       try {
@@ -669,9 +850,12 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
           await _firebaseService.addAttendance(updatedAttendance);
         }
         
+        // Recalculate salary
+        await _firebaseService.recalculateAndSaveSalary(data.staff.id, _selectedMonth, _selectedYear);
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Attendance saved successfully'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Attendance saved & salary recalculated!'), backgroundColor: Colors.green),
           );
           _loadAttendance(); // Refresh list
         }
@@ -690,13 +874,43 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: hasValue ? color.withAlpha(38) : Colors.grey.shade100,
+        color: hasValue ? color.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: [
           Text(
             value.toString(),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: hasValue ? color : Colors.grey.shade400,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: hasValue ? color : Colors.grey.shade400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBadgeDouble(String label, double value, Color color) {
+    final hasValue = value > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: hasValue ? color.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -721,4 +935,29 @@ class _StaffAttendanceData {
   final Attendance attendance;
 
   _StaffAttendanceData({required this.staff, required this.attendance});
+}
+
+class _HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 20);
+    path.quadraticBezierTo(
+      size.width / 4,
+      size.height,
+      size.width / 2,
+      size.height - 20,
+    );
+    path.quadraticBezierTo(
+      size.width * 3 / 4,
+      size.height - 40,
+      size.width,
+      size.height - 10,
+    );
+    path.lineTo(size.width, 0);
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
