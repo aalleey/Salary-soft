@@ -260,12 +260,12 @@ class _SplashScreenState extends State<SplashScreen>
                   opacity: _logoFade,
                   child: AnimatedBuilder(
                     animation: _logoController,
-                    builder: (context, child) => Transform(
-                      alignment: Alignment.center,
-                      transform: Matrix4.identity()
-                        ..rotateZ(_logoRotate.value)
-                        ..scaleByDouble(_logoScale.value),
-                      child: child,
+                    builder: (context, child) => Transform.scale(
+                      scale: _logoScale.value,
+                      child: Transform.rotate(
+                        angle: _logoRotate.value,
+                        child: child,
+                      ),
                     ),
                     child: _buildLogo(),
                   ),

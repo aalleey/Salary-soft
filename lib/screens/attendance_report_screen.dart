@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 import '../providers/auth_provider.dart';
 import '../services/firebase_service.dart';
+import '../services/pdf_service.dart';
 import '../models/attendance.dart';
 import '../models/campus.dart';
 import '../models/staff.dart';
@@ -17,6 +19,7 @@ class AttendanceReportScreen extends StatefulWidget {
 
 class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   final FirebaseService _firebaseService = FirebaseService();
+  final PdfService _pdfService = PdfService();
 
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
@@ -96,6 +99,42 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
             content: Text('Error loading attendance: $e'),
             backgroundColor: Colors.red,
           ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportPdf(List<_StaffAttendanceData> data) async {
+    try {
+      final campusName = _selectedCampusId == 'All'
+          ? 'All Campuses'
+          : (_campusMap[_selectedCampusId] ?? _selectedCampusId);
+          
+      final pdfDataList = data.map((d) {
+        final resolvedCampus = _campusMap[d.staff.campus] ?? d.staff.campus;
+        return AttendanceReportData(
+          staffName: d.staff.name,
+          campusName: resolvedCampus,
+          salaryType: d.staff.salaryType,
+          absents: d.attendance.absents,
+          lates: d.attendance.lates,
+          halfLeaves: d.attendance.halfLeaves,
+          totalHours: d.attendance.totalWorkingHours,
+          totalLectures: d.attendance.totalLectures,
+        );
+      }).toList();
+
+      final pdfBytes = await _pdfService.generateAttendanceReport(
+        pdfDataList,
+        _selectedMonth,
+        _selectedYear,
+        campusName,
+      );
+      await Printing.layoutPdf(onLayout: (format) => pdfBytes);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -209,6 +248,14 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                 pinned: true,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                    onPressed: () => _exportPdf(filteredData),
+                    tooltip: 'Export PDF',
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 flexibleSpace: ClipPath(
                   clipper: _HeaderClipper(),
                   child: Container(
